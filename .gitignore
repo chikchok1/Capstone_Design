@@ -1,0 +1,25 @@
+# FitMatch - 운동강사 매칭 플랫폼
+
+# 환경 설정 파일 (민감한 정보 포함)
+modules/env.config.js
+
+# Node modules (만약 사용한다면)
+node_modules/
+
+# 로그 파일
+*.log
+npm-debug.log*
+
+# OS 관련
+.DS_Store
+Thumbs.db
+
+# IDE 설정
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 임시 파일
+*.tmp
+*.bak

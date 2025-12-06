@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FitMatch - 운동강사 매칭 플랫폼</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- 헤더 -->
+    <header>
+      <div class="container">
+        <div class="header-content">
+          <div class="logo" onclick="location.reload()">
+            <div class="logo-icon">💪</div>
+            <span>FitMatch</span>
+          </div>
+          <nav>
+            <a href="#sports">종목 찾기</a>
+            <a href="#instructors">강사 찾기</a>
+            <a href="#how-it-works">이용방법</a>
+            <a
+              href="#"
+              onclick="openInstructorRegisterModal(); return false;"
+              style="color: #2563eb; display: none"
+              >강사 등록</a
+            >
+          </nav>
+          <div id="authButtons" style="display: flex; gap: 10px">
+            <button class="btn btn-outline" onclick="openModal('login')">
+              로그인
+            </button>
+            <button class="btn btn-primary" onclick="openModal('signup')">
+              회원가입
+            </button>
+          </div>
+          <div
+            id="userProfile"
+            style="display: none; align-items: center; gap: 10px"
+          >
+            <span id="userName" style="font-weight: 600">회원님</span>
+            <button
+              class="btn btn-outline"
+              onclick="openNotificationCenter()"
+              style="position: relative"
+            >
+              🔔 알림
+            </button>
+            <button class="btn btn-outline" onclick="openMyPage()">
+              마이페이지
+            </button>
+            <button class="btn btn-outline" onclick="handleLogout()">
+              로그아웃
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- 로그인/회원가입 모달 -->
+    <div class="modal" id="authModal">
+      <div class="modal-content">
+        <button class="modal-close" onclick="closeModal()">×</button>
+
+        <div class="modal-tabs">
+          <div
+            class="tab-btn active"
+            id="tabLogin"
+            onclick="switchTab('login')"
+          >
+            로그인
+          </div>
+          <div class="tab-btn" id="tabSignup" onclick="switchTab('signup')">
+            회원가입
+          </div>
+        </div>
+
+        <!-- 로그인 폼 -->
+        <div id="loginForm" class="auth-form">
+          <h2 class="form-title">다시 오셨군요! 👋</h2>
+          <p class="form-subtitle">계정에 로그인하여 계속하세요</p>
+          <input
+            type="email"
+            id="loginEmail"
+            class="input-field"
+            placeholder="이메일 주소"
+          />
+          <input
+            type="password"
+            id="loginPw"
+            class="input-field"
+            placeholder="비밀번호"
+          />
+          <button class="btn btn-primary btn-full" onclick="processLogin()">
+            <span class="btn-icon">🔐</span> 로그인하기
+          </button>
+          <p class="form-footer">
+            계정이 없으신가요?
+            <a href="#" onclick="switchTab('signup'); return false;"
+              >회원가입</a
+            >
+          </p>
+        </div>
+
+        <!-- 회원가입 폼 -->
+        <div id="signupForm" class="auth-form" style="display: none">
+          <h2 class="form-title">운동을 시작해볼까요? 🔥</h2>
+          <p class="form-subtitle">3초만에 회원가입하고 강사를 찾아보세요</p>
+
+          <div class="user-type-selector">
+            <label class="radio-label">
+              <input type="radio" name="userType" value="student" checked />
+              <span class="radio-custom"></span>
+              <span class="radio-text">🎓 수강생</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="userType" value="instructor" />
+              <span class="radio-custom"></span>
+              <span class="radio-text">👨‍🏫 강사</span>
+            </label>
+          </div>
+
+          <input
+            type="text"
+            id="signupName"
+            class="input-field"
+            placeholder="이름"
+          />
+          <input
+            type="email"
+            id="signupEmail"
+            class="input-field"
+            placeholder="이메일 주소"
+          />
+          <input
+            type="password"
+            id="signupPw"
+            class="input-field"
+            placeholder="비밀번호 (6자리 이상)"
+          />
+
+          <button class="btn btn-primary btn-full" onclick="processSignup()">
+            <span class="btn-icon">✨</span> 3초만에 회원가입
+          </button>
+
+          <p class="form-footer">
+            이미 계정이 있으신가요?
+            <a href="#" onclick="switchTab('login'); return false;">로그인</a>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 강사 등록 모달 (업데이트 버전) -->
+    <div class="modal" id="instructorModal">
+      <div
+        class="modal-content"
+        style="max-width: 600px; max-height: 90vh; overflow-y: auto"
+      >
+        <button class="modal-close" onclick="closeInstructorModal()">×</button>
+
+        <div class="auth-form">
+          <h2 class="form-title">강사 프로필 등록 👨‍🏫</h2>
+          <p class="form-subtitle">회원님의 전문성을 알려주세요</p>
+
+          <!-- 프로필 이미지 섹션 추가 -->
+          <div style="text-align: center; margin-bottom: 30px">
+            <h3 style="margin-bottom: 15px; font-size: 1rem; color: #374151">
+              📸 프로필 이미지
+            </h3>
+            <div style="position: relative; display: inline-block">
+              <img
+                id="newInstructorProfilePreview"
+                src="https://ui-avatars.com/api/?name=Profile&size=150&background=3b82f6&color=fff"
+                alt="프로필"
+                style="
+                  width: 150px;
+                  height: 150px;
+                  border-radius: 50%;
+                  object-fit: cover;
+                  border: 4px solid #3b82f6;
+                  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                "
+              />
+              <label
+                for="newInstructorProfileImageInput"
+                style="
+                  position: absolute;
+                  bottom: 5px;
+                  right: 5px;
+                  background: #3b82f6;
+                  color: white;
+                  width: 40px;
+                  height: 40px;
+                  border-radius: 50%;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  cursor: pointer;
+                  font-size: 20px;
+                  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+                "
+              >
+                📷
+              </label>
+              <input
+                type="file"
+                id="newInstructorProfileImageInput"
+                accept="image/*"
+                style="display: none"
+                onchange="handleNewInstructorImageChange(event)"
+              />
+            </div>
+            <p style="font-size: 0.85rem; color: #6b7280; margin-top: 10px">
+              📸 카메라 아이콘을 클릭하여 이미지 추가 (선택사항)
+            </p>
+            <p
+              id="newInstructorUploadStatus"
+              style="font-size: 0.85rem; color: #3b82f6; margin-top: 5px"
+            ></p>
+          </div>
+
+          <input
+            type="text"
+            id="instructorName"
+            class="input-field"
+            placeholder="강사명"
+          />
+
+          <select id="instructorSport" class="input-field">
+            <option value="">전문 종목 선택</option>
+          </select>
+
+          <select id="instructorRegion" class="input-field">
+            <option value="">활동 지역 선택</option>
+            <option>서울</option>
+            <option>경기</option>
+            <option>인천</option>
+            <option>부산</option>
+            <option>대구</option>
+            <option>대전</option>
+            <option>광주</option>
+            <option>울산</option>
+          </select>
+
+          <input
+            type="number"
+            id="instructorExperience"
+            class="input-field"
+            placeholder="경력 (년)"
+            min="0"
+          />
+          <input
+            type="number"
+            id="instructorPrice"
+            class="input-field"
+            placeholder="1회 레슨 비용 (원)"
+            min="0"
+          />
+
+          <textarea
+            id="instructorIntro"
+            class="input-field"
+            rows="4"
+            placeholder="자기소개 및 레슨 설명 (필수)"
+          ></textarea>
+
+          <textarea
+            id="instructorCertificates"
+            class="input-field"
+            rows="2"
+            placeholder="자격증 (쉼표로 구분, 선택사항)"
+          ></textarea>
+
+          <button
+            class="btn btn-primary btn-full"
+            onclick="registerInstructor()"
+          >
+            <span class="btn-icon">✨</span> 등록하기
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 예약 모달 -->
+    <div class="modal" id="bookingModal">
+      <div class="modal-content" style="max-width: 500px">
+        <button class="modal-close" onclick="closeBookingModal()">×</button>
+
+        <div class="auth-form">
+          <h2 class="form-title">레슨 예약 요청하기 📅</h2>
+          <p class="form-subtitle" id="bookingInstructorName">
+            강사님께 레슨을 요청합니다
+          </p>
+
+          <input type="date" id="bookingDate" class="input-field" />
+          <input type="time" id="bookingTime" class="input-field" />
+          <textarea
+            id="bookingMessage"
+            class="input-field"
+            rows="3"
+            placeholder="강사님께 전달할 메시지 (선택)"
+          ></textarea>
+
+          <div
+            style="
+              background: #fef3c7;
+              padding: 12px;
+              border-radius: 8px;
+              margin-bottom: 15px;
+            "
+          >
+            <p style="color: #92400e; font-size: 0.9rem; line-height: 1.5">
+              ℹ️ 예약 요청 후 강사님이 확정하면 내 예약 내역에 표시됩니다.
+            </p>
+          </div>
+
+          <button class="btn btn-primary btn-full" onclick="submitBooking()">
+            <span class="btn-icon">✅</span> 예약 요청하기
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- 강사 상세 모달 -->
+    <!-- 강사 상세 모달 -->
+    <div class="modal" id="instructorDetailModal">
+      <div
+        class="modal-content"
+        style="
+          max-width: 650px;
+          max-height: 90vh;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          padding: 0;
+        "
+      >
+        <div
+          style="
+            padding: 20px 30px;
+            border-bottom: 1px solid #e5e7eb;
+            flex-shrink: 0;
+          "
+        >
+          <button class="modal-close" onclick="closeInstructorDetailModal()">
+            ×
+          </button>
+        </div>
+        <div
+          id="instructorDetailContent"
+          style="overflow-y: auto; flex: 1; padding: 30px; padding-top: 20px"
+        >
+          <!-- 강사 상세 정보가 여기에 동적으로 표시됩니다 -->
+        </div>
+      </div>
+    </div>
+
+    <!-- 마이페이지 모달 -->
+    <div class="modal" id="myPageModal">
+      <div
+        class="modal-content"
+        style="max-width: 800px; max-height: 80vh; overflow-y: auto"
+      >
+        <button class="modal-close" onclick="closeMyPageModal()">×</button>
+
+        <div class="auth-form">
+          <h2 class="form-title">마이페이지 👤</h2>
+
+          <div class="mypage-tabs" id="mypageTabs">
+            <!-- 탭은 JavaScript에서 동적으로 생성됩니다 -->
+          </div>
+
+          <!-- 내 예약 탭 (수강생) -->
+          <div id="myBookingsTab" class="mypage-content">
+            <h3 style="margin: 20px 0 15px; font-size: 1.2rem">
+              확정된 예약 내역
+            </h3>
+            <div id="myBookingsList"></div>
+          </div>
+
+          <!-- 예약 요청 관리 탭 (강사) -->
+          <div
+            id="bookingRequestsTab"
+            class="mypage-content"
+            style="display: none"
+          >
+            <h3 style="margin: 20px 0 15px; font-size: 1.2rem">
+              받은 예약 요청
+            </h3>
+            <div id="bookingRequestsList"></div>
+          </div>
+
+          <!-- ✅ 확정된 예약 탭 (강사) - 새로 추가 -->
+          <div
+            id="confirmedBookingsTab"
+            class="mypage-content"
+            style="display: none"
+          >
+            <h3 style="margin: 20px 0 15px; font-size: 1.2rem">
+              확정된 예약
+            </h3>
+            <div id="confirmedBookingsList"></div>
+          </div>
+
+          <!-- 내 프로필 탭 -->
+          <div id="myProfileTab" class="mypage-content" style="display: none">
+            <h3 style="margin: 20px 0 15px; font-size: 1.2rem">내 프로필</h3>
+            <div id="myProfileContent"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- 종목 추가 모달 -->
+    <div class="modal" id="addSportModal">
+      <div class="modal-content" style="max-width: 500px">
+        <button class="modal-close" onclick="closeAddSportModal()">×</button>
+
+        <div class="auth-form">
+          <h2 class="form-title">새로운 종목 추가 ➕</h2>
+          <p class="form-subtitle">새로운 운동 종목을 추가해주세요</p>
+
+          <div class="input-group">
+            <label for="newSportName" class="input-label">종목명</label>
+            <input
+              type="text"
+              id="newSportName"
+              class="input-field"
+              placeholder="예: 크로스핏, 클라이밍"
+            />
+          </div>
+
+          <div class="input-group">
+            <label for="newSportCategory" class="input-label">카테고리</label>
+            <select id="newSportCategory" class="input-field">
+              <option value="">카테고리 선택</option>
+              <option value="ball">구기종목</option>
+              <option value="water">수상스포츠</option>
+              <option value="fitness">피트니스</option>
+              <option value="martial">격투기</option>
+              <option value="extreme">익스트림</option>
+              <option value="dance">댄스</option>
+              <option value="other">기타</option>
+            </select>
+          </div>
+
+          <div
+            style="
+              background: #fef3c7;
+              padding: 12px;
+              border-radius: 8px;
+              margin-bottom: 15px;
+            "
+          >
+            <p style="color: #92400e; font-size: 0.9rem; line-height: 1.5">
+              ℹ️ 추가된 종목은 관리자 승인 후 사용할 수 있습니다.
+            </p>
+          </div>
+
+          <button class="btn btn-primary btn-full" onclick="submitNewSport()">
+            <span class="btn-icon">✅</span> 종목 추가하기
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- 히어로 섹션 -->
+    <section class="hero">
+      <div class="container">
+        <div class="hero-content">
+          <h1>당신만의 전문 강사를 찾아보세요</h1>
+          <p>검증된 전문 강사들과 매칭하여 원하는 운동을 시작하세요</p>
+
+          <div class="search-box">
+            <div class="search-grid">
+              <select class="search-select" id="sportSelect">
+                <option value="">운동 종목 선택</option>
+              </select>
+
+              <select class="search-select" id="regionSelect">
+                <option value="">지역 선택</option>
+                <option>서울</option>
+                <option>경기</option>
+                <option>인천</option>
+                <option>부산</option>
+                <option>대구</option>
+                <option>대전</option>
+                <option>광주</option>
+                <option>울산</option>
+              </select>
+
+              <button class="btn btn-primary" onclick="handleSearch()">
+                강사 검색하기
+              </button>
+            </div>
+
+            <input
+              type="text"
+              class="search-input"
+              id="searchInput"
+              placeholder="어떤 운동을 시작하고 싶으신가요? 종목이나 강사를 검색해보세요"
+              onkeypress="if(event.key==='Enter') handleSearch()"
+            />
+          </div>
+
+          <div class="popular-searches">
+            <span style="color: #6b7280">인기 검색:</span>
+            <button class="popular-tag" onclick="setSearch('요가')">
+              요가
+            </button>
+            <button class="popular-tag" onclick="setSearch('필라테스')">
+              필라테스
+            </button>
+            <button class="popular-tag" onclick="setSearch('수영')">
+              수영
+            </button>
+            <button class="popular-tag" onclick="setSearch('테니스')">
+              테니스
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 통계 섹션 -->
+    <section class="stats">
+      <div class="container">
+        <div class="stats-grid">
+          <div class="stat-item">
+            <h3 id="statInstructors">0</h3>
+            <p>검증된 강사</p>
+          </div>
+          <div class="stat-item">
+            <h3 id="statBookings">0</h3>
+            <p>매칭 완료</p>
+          </div>
+          <div class="stat-item">
+            <h3>4.8/5</h3>
+            <p>평균 만족도</p>
+          </div>
+          <div class="stat-item">
+            <h3>50+</h3>
+            <p>운동 종목</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 운동 종목 섹션 -->
+    <section id="sports" class="sports-section">
+      <div class="container">
+        <div class="section-title">
+          <h2>어떤 운동을 시작하고 싶으신가요?</h2>
+          <p>다양한 종목의 전문 강사들이 기다리고 있습니다</p>
+        </div>
+
+        <div class="sports-filter">
+          <button class="filter-btn active" onclick="filterSports('all')">
+            전체
+          </button>
+          <button class="filter-btn" onclick="filterSports('ball')">
+            구기종목
+          </button>
+          <button class="filter-btn" onclick="filterSports('water')">
+            수상스포츠
+          </button>
+          <button class="filter-btn" onclick="filterSports('fitness')">
+            피트니스
+          </button>
+          <button class="filter-btn" onclick="filterSports('martial')">
+            격투기
+          </button>
+          <button class="filter-btn" onclick="filterSports('extreme')">
+            익스트림
+          </button>
+          <button class="filter-btn" onclick="filterSports('dance')">
+            댄스
+          </button>
+        </div>
+
+        <div class="sports-grid" id="sportsGrid"></div>
+
+        <div class="view-more">
+          <button
+            class="view-more-btn"
+            id="viewMoreBtn"
+            onclick="toggleViewMore()"
+          >
+            더보기 ▼
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 인기 강사 섹션 -->
+    <section id="instructors" class="instructors-section">
+      <div class="container">
+        <div class="section-title">
+          <h2>인기 강사를 만나보세요</h2>
+          <p>경험과 실력을 검증받은 최고의 강사들</p>
+        </div>
+
+        <div class="instructors-grid" id="instructorsGrid">
+          <!-- 동적으로 강사 카드가 여기에 표시됩니다 -->
+        </div>
+      </div>
+    </section>
+
+    <!-- 이용방법 섹션 -->
+    <section id="how-it-works" class="how-it-works">
+      <div class="container">
+        <div class="section-title">
+          <h2>이렇게 시작하세요</h2>
+          <p>간단한 3단계로 나만의 강사를 찾을 수 있습니다</p>
+        </div>
+        <div class="steps-grid">
+          <div class="step">
+            <div class="step-number">1</div>
+            <h3>원하는 운동 선택</h3>
+            <p>50가지 이상의 운동 종목 중에서 관심있는 운동을 선택하세요</p>
+          </div>
+          <div class="step">
+            <div class="step-number">2</div>
+            <h3>강사 검색 & 매칭</h3>
+            <p>지역, 시간, 경력 등을 고려하여 최적의 강사를 찾아드립니다</p>
+          </div>
+          <div class="step">
+            <div class="step-number">3</div>
+            <h3>레슨 시작</h3>
+            <p>강사와 일정을 조율하고 원하는 시간에 레슨을 시작하세요</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 푸터 -->
+    <footer>
+      <div class="container">
+        <p>© 2025 FitMatch - 운동강사 매칭 플랫폼. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script type="module" src="script.js"></script>
+  </body>
+</html>

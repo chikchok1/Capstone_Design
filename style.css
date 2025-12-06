@@ -1,0 +1,965 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.6;
+  color: #333;
+  background-color: #fff;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* ========================================
+   헤더
+======================================== */
+header {
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 64px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.logo-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 24px;
+}
+
+nav {
+  display: flex;
+  gap: 32px;
+  align-items: center;
+}
+
+nav a {
+  text-decoration: none;
+  color: #374151;
+  transition: color 0.3s;
+  font-weight: 500;
+}
+
+nav a:hover {
+  color: #2563eb;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-outline {
+  background: white;
+  color: #2563eb;
+  border: 2px solid #2563eb;
+}
+
+.btn-outline:hover {
+  background: #eff6ff;
+}
+
+.btn-icon {
+  font-size: 16px;
+}
+
+.btn-small {
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
+/* ========================================
+   모달 디자인 (성능 최적화)
+======================================== */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+  /* backdrop-filter 제거 (성능 이슈) */
+  overflow-y: auto;
+  padding: 20px;
+  /* GPU 가속 */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  /* 부드러운 전환 */
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.modal.active {
+  display: flex;
+  /* 애니메이션 대신 opacity만 사용 */
+  animation: none;
+  opacity: 1;
+}
+
+/* fadeIn 애니메이션 제거 (불필요) */
+
+.modal-content {
+  background: white;
+  border-radius: 20px;
+  padding: 0;
+  max-width: 450px;
+  width: 90%;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+  max-height: 90vh;
+  overflow-y: auto;
+  /* GPU 가속 */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: transform;
+  /* 부드러운 스크롤 */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  /* 빠른 전환 */
+  transition: transform 0.15s ease;
+}
+
+.modal.active .modal-content {
+  /* slideUp 애니메이션 제거하고 즉시 표시 */
+  animation: none;
+  transform: translateY(0) translateZ(0);
+}
+
+/* slideUp 애니메이션 제거 (불필요) */
+
+.modal-close {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  background: none;
+  border: none;
+  font-size: 32px;
+  cursor: pointer;
+  color: #9ca3af;
+  z-index: 10;
+  /* 빠른 전환 */
+  transition: all 0.15s ease;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  /* GPU 가속 */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+.modal-close:hover {
+  background: #f3f4f6;
+  color: #374151;
+  transform: rotate(90deg) translateZ(0);
+}
+
+.modal-close:active {
+  transform: scale(0.95) translateZ(0);
+}
+
+/* 탭 디자인 */
+.modal-tabs {
+  display: flex;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+  /* GPU 가속 */
+  transform: translateZ(0);
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 18px;
+  text-align: center;
+  cursor: pointer;
+  font-weight: 600;
+  color: #6b7280;
+  transition: all 0.3s;
+  font-size: 15px;
+}
+
+.tab-btn.active {
+  background: white;
+  color: #667eea;
+  border-bottom: 3px solid #667eea;
+  position: relative;
+}
+
+.tab-btn:hover {
+  color: #667eea;
+}
+
+/* 폼 디자인 */
+.auth-form {
+  padding: 40px 35px;
+  text-align: center;
+}
+
+.form-title {
+  font-size: 1.6rem;
+  margin-bottom: 8px;
+  color: #111827;
+  font-weight: 700;
+}
+
+.form-subtitle {
+  color: #6b7280;
+  font-size: 14px;
+  margin-bottom: 25px;
+}
+
+.input-field {
+  width: 100%;
+  padding: 14px 18px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  margin-bottom: 15px;
+  font-size: 15px;
+  transition: all 0.3s;
+  background: #f9fafb;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: #667eea;
+  background: white;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
+.input-field::placeholder {
+  color: #9ca3af;
+}
+
+.btn-full {
+  width: 100%;
+  padding: 15px;
+  font-size: 16px;
+  border-radius: 12px;
+  margin-top: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.form-footer {
+  margin-top: 20px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.form-footer a {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.form-footer a:hover {
+  text-decoration: underline;
+}
+
+/* 라디오 버튼 (수강생/강사 선택) */
+.user-type-selector {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.radio-label {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  transition: all 0.3s;
+  background: #f9fafb;
+  flex: 1;
+  justify-content: center;
+}
+
+.radio-label:hover {
+  border-color: #667eea;
+  background: white;
+}
+
+.radio-label input[type="radio"] {
+  display: none;
+}
+
+.radio-custom {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #d1d5db;
+  border-radius: 50%;
+  position: relative;
+  transition: all 0.3s;
+}
+
+.radio-label input[type="radio"]:checked ~ .radio-custom {
+  border-color: #667eea;
+  background: #667eea;
+}
+
+.radio-label input[type="radio"]:checked ~ .radio-custom::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  background: white;
+  border-radius: 50%;
+}
+
+.radio-label input[type="radio"]:checked ~ .radio-text {
+  color: #667eea;
+  font-weight: 600;
+}
+
+.radio-text {
+  font-weight: 500;
+  color: #374151;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+/* ========================================
+   히어로 섹션
+======================================== */
+.hero {
+  background: linear-gradient(135deg, #eff6ff 0%, #eef2ff 50%, #faf5ff 100%);
+  padding: 80px 0;
+}
+
+.hero-content {
+  max-width: 900px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.hero h1 {
+  font-size: 3rem;
+  margin-bottom: 20px;
+  color: #111827;
+  font-weight: 800;
+}
+
+.hero p {
+  font-size: 1.25rem;
+  color: #6b7280;
+  margin-bottom: 40px;
+}
+
+.search-box {
+  background: white;
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
+}
+
+.search-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.search-input,
+.search-select {
+  padding: 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  width: 100%;
+}
+
+.search-input:focus,
+.search-select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.popular-searches {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  align-items: center;
+}
+
+.popular-tag {
+  padding: 8px 18px;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 20px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: 500;
+}
+
+.popular-tag:hover {
+  background: #eff6ff;
+  border-color: #2563eb;
+  color: #2563eb;
+}
+
+/* ========================================
+   통계 섹션
+======================================== */
+.stats {
+  padding: 60px 0;
+  background: white;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 40px;
+  text-align: center;
+}
+
+.stat-item h3 {
+  font-size: 2.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 10px;
+  font-weight: 800;
+}
+
+.stat-item p {
+  color: #6b7280;
+  font-size: 1.1rem;
+}
+
+/* ========================================
+   운동 종목 섹션
+======================================== */
+.sports-section {
+  padding: 60px 0;
+  background: #f9fafb;
+}
+
+.section-title {
+  text-align: center;
+  margin-bottom: 50px;
+}
+
+.section-title h2 {
+  font-size: 2rem;
+  margin-bottom: 15px;
+  color: #111827;
+  font-weight: 700;
+}
+
+.section-title p {
+  font-size: 1.1rem;
+  color: #6b7280;
+}
+
+.sports-filter {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 10px 24px;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.filter-btn:hover {
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.filter-btn.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: transparent;
+}
+
+.sports-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 15px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.sport-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: 2px solid transparent;
+  position: relative;
+}
+
+.sport-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  border-color: #667eea;
+}
+
+.sport-card.new-badge::after {
+  content: "NEW";
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  color: white;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.sport-icon {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+}
+
+.sport-card h3 {
+  font-size: 0.95rem;
+  margin-bottom: 5px;
+  font-weight: 600;
+}
+
+.sport-card p {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.add-sport-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: 2px dashed rgba(255, 255, 255, 0.5);
+}
+
+.add-sport-card:hover {
+  transform: scale(1.05);
+  border-color: white;
+}
+
+.add-sport-card h3,
+.add-sport-card p {
+  color: white;
+}
+
+.rating-star {
+  cursor: pointer;
+  font-size: 1.5rem;
+  opacity: 0.3;
+  transition: all 0.3s;
+  display: inline-block;
+}
+
+.rating-star:hover {
+  transform: scale(1.2);
+  opacity: 1;
+}
+
+.view-more {
+  text-align: center;
+  margin-top: 30px;
+}
+
+.view-more-btn {
+  padding: 12px 32px;
+  background: white;
+  border: 2px solid #667eea;
+  color: #667eea;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.view-more-btn:hover {
+  background: #667eea;
+  color: white;
+}
+
+/* ========================================
+   강사 섹션
+======================================== */
+.instructors-section {
+  padding: 60px 0;
+  background: white;
+}
+
+.instructors-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 30px;
+}
+
+.instructor-card {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+.instructor-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  border-color: #667eea;
+}
+
+.instructor-header {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.instructor-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 24px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.instructor-info h3 {
+  font-size: 1.2rem;
+  margin-bottom: 5px;
+}
+
+.specialty-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  background: #eff6ff;
+  color: #667eea;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  margin-right: 5px;
+  margin-bottom: 5px;
+  font-weight: 600;
+}
+
+.cert-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background: #fef3c7;
+  color: #d97706;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  margin-right: 5px;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.rating {
+  color: #fbbf24;
+  margin: 10px 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ========================================
+   이용방법 섹션
+======================================== */
+.how-it-works {
+  padding: 60px 0;
+  background: #f9fafb;
+}
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.step {
+  text-align: center;
+}
+
+.step-number {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 auto 20px;
+}
+
+.step h3 {
+  font-size: 1.3rem;
+  margin-bottom: 15px;
+  font-weight: 600;
+}
+
+.step p {
+  color: #6b7280;
+}
+
+/* ========================================
+   마이페이지
+======================================== */
+.mypage-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 10px;
+}
+
+.mypage-tab-btn {
+  padding: 10px 20px;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.mypage-tab-btn:hover {
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.mypage-tab-btn.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: transparent;
+}
+
+.mypage-content {
+  text-align: left;
+}
+
+.booking-card {
+  background: #f9fafb;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 15px;
+  border: 2px solid #e5e7eb;
+  transition: all 0.3s;
+}
+
+.booking-card:hover {
+  border-color: #667eea;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.status-badge.pending {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.status-badge.confirmed {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.status-badge.cancelled {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.profile-card {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+/* ========================================
+   푸터
+======================================== */
+footer {
+  background: #111827;
+  color: white;
+  padding: 40px 0;
+  text-align: center;
+}
+
+footer p {
+  color: #9ca3af;
+}
+
+/* ========================================
+   반응형 디자인
+======================================== */
+@media (max-width: 768px) {
+  .hero h1 {
+    font-size: 2rem;
+  }
+
+  .search-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-grid,
+  .instructors-grid,
+  .steps-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .sports-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .sport-card {
+    padding: 15px;
+  }
+
+  .sport-icon {
+    font-size: 2rem;
+  }
+
+  nav {
+    display: none;
+  }
+
+  .sports-filter {
+    gap: 6px;
+  }
+
+  .filter-btn {
+    padding: 8px 16px;
+    font-size: 12px;
+  }
+
+  .modal-content {
+    max-width: 95%;
+  }
+
+  .auth-form {
+    padding: 30px 25px;
+  }
+
+  #userProfile {
+    flex-wrap: wrap;
+  }
+
+  .mypage-tabs {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid,
+  .instructors-grid,
+  .steps-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sports-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .sport-card h3 {
+    font-size: 0.85rem;
+  }
+
+  .sport-card p {
+    font-size: 0.75rem;
+  }
+
+  .user-type-selector {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
