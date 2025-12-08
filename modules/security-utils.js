@@ -8,17 +8,17 @@
  * @returns {string} - 이스케이프된 안전한 텍스트
  */
 export function escapeHtml(text) {
-  if (!text) return '';
-  
+  if (!text) return "";
+
   const map = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#039;',
-    '/': '&#x2F;'
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;",
+    "/": "&#x2F;",
   };
-  
+
   return String(text).replace(/[&<>"'/]/g, (char) => map[char]);
 }
 
@@ -50,7 +50,7 @@ export function isValidPhone(phone) {
 export function isSafeUrl(url) {
   try {
     const urlObj = new URL(url);
-    return ['http:', 'https:'].includes(urlObj.protocol);
+    return ["http:", "https:"].includes(urlObj.protocol);
   } catch {
     return false;
   }
@@ -62,8 +62,11 @@ export function isSafeUrl(url) {
  * @param {string[]} allowedExtensions - 허용된 확장자 목록
  * @returns {boolean} - 허용된 확장자 여부
  */
-export function isAllowedFileExtension(filename, allowedExtensions = ['jpg', 'jpeg', 'png', 'webp']) {
-  const ext = filename.split('.').pop()?.toLowerCase();
+export function isAllowedFileExtension(
+  filename,
+  allowedExtensions = ["jpg", "jpeg", "png", "webp"]
+) {
+  const ext = filename.split(".").pop()?.toLowerCase();
   return allowedExtensions.includes(ext);
 }
 
@@ -73,17 +76,27 @@ export function isAllowedFileExtension(filename, allowedExtensions = ['jpg', 'jp
  * @returns {string} - 정제된 텍스트
  */
 export function sanitizeInput(text) {
-  if (!text) return '';
-  
+  if (!text) return "";
+
   // SQL Injection 관련 키워드 제거
-  const dangerous = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'DROP', 'CREATE', 'ALTER', 'EXEC', 'SCRIPT'];
+  const dangerous = [
+    "SELECT",
+    "INSERT",
+    "UPDATE",
+    "DELETE",
+    "DROP",
+    "CREATE",
+    "ALTER",
+    "EXEC",
+    "SCRIPT",
+  ];
   let sanitized = String(text);
-  
-  dangerous.forEach(keyword => {
-    const regex = new RegExp(keyword, 'gi');
-    sanitized = sanitized.replace(regex, '');
+
+  dangerous.forEach((keyword) => {
+    const regex = new RegExp(keyword, "gi");
+    sanitized = sanitized.replace(regex, "");
   });
-  
+
   return sanitized.trim();
 }
 
@@ -136,22 +149,27 @@ export function safeJsonParse(jsonString, defaultValue = null) {
 export function checkRateLimit(key, maxAttempts = 5, timeWindowMs = 60000) {
   const now = Date.now();
   const storageKey = `rateLimit_${key}`;
-  
+
   let attempts = safeJsonParse(localStorage.getItem(storageKey), []);
-  
+
+  // 💥 배열 아닌 값(특히 null) 보정
+  if (!Array.isArray(attempts)) {
+    attempts = [];
+  }
+
   // 오래된 시도 제거
-  attempts = attempts.filter(timestamp => now - timestamp < timeWindowMs);
-  
+  attempts = attempts.filter((timestamp) => now - timestamp < timeWindowMs);
+
   // 제한 초과 확인
   if (attempts.length >= maxAttempts) {
-    return false; // 제한 초과
+    return false;
   }
-  
+
   // 새 시도 추가
   attempts.push(now);
   localStorage.setItem(storageKey, JSON.stringify(attempts));
-  
-  return true; // 허용
+
+  return true;
 }
 
 /**
