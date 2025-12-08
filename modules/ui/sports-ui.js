@@ -139,10 +139,15 @@ export function initSportsUI() {
       alert(`✅ "${name}" 종목이 추가되었습니다!`);
       window.closeAddSportModal();
 
-      // ✅ 종목 목록 새로고침
+      // ✅ 종목 데이터 새로고침 (Firebase에서 최신 데이터 가져오기)
+      const { refreshSportsWithCounts } = await import("../sports.js");
+      const updatedSports = await refreshSportsWithCounts();
+      setSportsData(updatedSports);
+      
+      // ✅ 종목 UI 업데이트
       await window.loadAndDisplaySports();
 
-      // ✅ 통계 업데이트 추가!
+      // ✅ 통계 업데이트
       if (window.updateStats) {
         await window.updateStats();
       }

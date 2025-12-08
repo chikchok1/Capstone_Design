@@ -1,5 +1,5 @@
 // ============================================================
-// 운동 종목 관련 함수 (디버깅 강화 버전)
+// 운동 종목 관련 함수 (네트워크 재시도 로직 추가)
 // ============================================================
 import { db } from "./firebase-config.js";
 import {
@@ -69,7 +69,32 @@ const defaultSports = [
   { name: "재즈댄스", icon: "🎷", count: 0, category: "dance", isNew: false },
 ];
 
-// 운동 종목 로드 (디버깅 강화)
+// ✅ 재시도 로직 추가
+async function retryOperation(operation, maxRetries = 3, delayMs = 1000) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await operation();
+    } catch (error) {
+      console.warn(`⚠️ 시도 ${i + 1}/${maxRetries} 실패:`, error.message);
+      
+      // 오프라인 에러가 아니면 즉시 실패
+      if (!error.message.includes('offline') && !error.message.includes('Backend')) {
+        throw error;
+      }
+      
+      // 마지막 시도가 아니면 대기 후 재시도
+      if (i < maxRetries - 1) {
+        console.log(`🔄 ${delayMs}ms 후 재시도...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        delayMs *= 2; // 지수 백오프
+      } else {
+        throw error;
+      }
+    }
+  }
+}
+
+// 운동 종목 로드 (재시도 로직 적용)
 export async function loadSportsData() {
   try {
     console.log("📥 Firebase에서 종목 데이터 로드 시도...");
@@ -80,7 +105,11 @@ export async function loadSportsData() {
       return defaultSports;
     }
     
-    const sportsDoc = await getDoc(doc(db, "settings", "sports"));
+    // ✅ 재시도 로직 적용
+    const sportsDoc = await retryOperation(async () => {
+      return await getDoc(doc(db, "settings", "sports"));
+    });
+    
     console.log("📄 Firebase 문서 존재 여부:", sportsDoc.exists());
 
     let sportsData;
@@ -111,23 +140,65 @@ export async function loadSportsData() {
   }
 }
 
-// 운동 종목별 강사 수 업데이트
+// ✅ 운동 종목별 강사 수 업데이트 (재시도 로직 적용)
 export async function updateSportCounts(sportsData) {
-  const instructorsSnapshot = await getDocs(collection(db, "instructors"));
-  const sportCounts = {};
+  console.log("🔄 종목별 강사 수 업데이트 시작...");
+  
+  try {
+    const instructorsSnapshot = await retryOperation(async () => {
+      return await getDocs(collection(db, "instructors"));
+    });
+    
+    const sportCounts = {};
 
-  instructorsSnapshot.forEach((doc) => {
-    const sport = doc.data().sport;
-    sportCounts[sport] = (sportCounts[sport] || 0) + 1;
-  });
+    instructorsSnapshot.forEach((doc) => {
+      const sport = doc.data().sport;
+      sportCounts[sport] = (sportCounts[sport] || 0) + 1;
+    });
 
-  sportsData.forEach((sport) => {
-    sport.count = sportCounts[sport.name] || 0;
-  });
+    console.log("📊 집계된 종목별 강사 수:", sportCounts);
 
-  await setDoc(doc(db, "settings", "sports"), { list: sportsData });
+    sportsData.forEach((sport) => {
+      const oldCount = sport.count;
+      sport.count = sportCounts[sport.name] || 0;
+      if (oldCount !== sport.count) {
+        console.log(`  ${sport.name}: ${oldCount} → ${sport.count}명`);
+      }
+    });
 
-  return sportsData;
+    await setDoc(doc(db, "settings", "sports"), { list: sportsData });
+    console.log("✅ 종목별 강사 수 업데이트 완료 및 Firebase 저장 완료");
+
+    return sportsData;
+  } catch (error) {
+    console.error("❌ 강사 수 업데이트 실패:", error);
+    // 실패해도 기존 데이터 반환
+    return sportsData;
+  }
+}
+
+// ✅ 최신 강사 수로 종목 데이터 새로고침 (재시도 로직 적용)
+export async function refreshSportsWithCounts() {
+  console.log("🔄 종목 데이터 새로고침 시작...");
+  
+  try {
+    // 1. Firebase에서 최신 종목 데이터 로드
+    const sportsDoc = await retryOperation(async () => {
+      return await getDoc(doc(db, "settings", "sports"));
+    });
+    
+    let sportsData = sportsDoc.exists() ? sportsDoc.data().list || [] : defaultSports;
+    
+    // 2. 강사 수 카운트 업데이트
+    const updatedSports = await updateSportCounts(sportsData);
+    
+    console.log("✅ 종목 데이터 새로고침 완료");
+    return updatedSports;
+  } catch (error) {
+    console.error("❌ 종목 데이터 새로고침 실패:", error);
+    console.log("⚠️ 기본 종목 데이터 반환");
+    return defaultSports;
+  }
 }
 
 // 종목 이름에 맞는 이모지 자동 매칭
