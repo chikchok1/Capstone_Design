@@ -58,23 +58,27 @@ let sportsDataGlobal = [];
 function populateSportSelect(sportsData) {
   console.log("🔍 검색 박스 종목 리스트 채우기...", sportsData.length);
   const sportSelect = document.getElementById("sportSelect");
-  
+
   if (!sportSelect) {
     console.error("❌ sportSelect 요소를 찾을 수 없습니다!");
     return;
   }
-  
+
   // 기존 옵션 유지하고 종목 추가
   sportSelect.innerHTML = '<option value="">운동 종목 선택</option>';
-  
+
   sportsData.forEach((sport) => {
     const option = document.createElement("option");
     option.value = sport.name;
     option.textContent = `${sport.icon} ${sport.name}`;
     sportSelect.appendChild(option);
   });
-  
-  console.log("✅ 종목 리스트 채우기 완료! 총", sportSelect.options.length - 1, "개");
+
+  console.log(
+    "✅ 종목 리스트 채우기 완료! 총",
+    sportSelect.options.length - 1,
+    "개"
+  );
 }
 
 // ============================================================
@@ -158,19 +162,35 @@ setupAuthListener(async (user) => {
 // ============================================================
 // 통계 업데이트
 // ============================================================
-async function updateStats() {
+// ✅ forceRefresh 옵션 추가: true일 때 캐시 무시하고 실시간 계산
+async function updateStats(forceRefresh = false) {
   try {
-    const stats = await getStatistics();
-    document.getElementById("statInstructors").textContent =
-      stats.instructorCount;
-    document.getElementById("statBookings").textContent = stats.bookingCount;
-    document.querySelector(
+    const stats = await getStatistics(forceRefresh);
+
+    const statInstructors = document.getElementById("statInstructors");
+    const statBookings = document.getElementById("statBookings");
+    const statRating = document.querySelector(
       ".stats-grid .stat-item:nth-child(3) h3"
-    ).textContent = stats.avgRating + "/5";
+    );
+
+    if (statInstructors) statInstructors.textContent = stats.instructorCount;
+    if (statBookings) statBookings.textContent = stats.bookingCount;
+    if (statRating) statRating.textContent = stats.avgRating + "/5";
 
     console.log("✅ 통계 업데이트 완료:", stats);
   } catch (error) {
-    console.error("통계 로드 실패:", error);
+    console.error("❌ 통계 로드 실패:", error);
+
+    // 에러 발생 시 기본값 표시
+    const statInstructors = document.getElementById("statInstructors");
+    const statBookings = document.getElementById("statBookings");
+    const statRating = document.querySelector(
+      ".stats-grid .stat-item:nth-child(3) h3"
+    );
+
+    if (statInstructors) statInstructors.textContent = "0";
+    if (statBookings) statBookings.textContent = "0";
+    if (statRating) statRating.textContent = "4.8/5";
   }
 }
 
@@ -227,20 +247,26 @@ window.deleteInstructorProfileById = async function (profileId) {
     await deleteInstructorProfile(profileId);
     alert("✅ 강사 프로필이 삭제되었습니다.");
     window.closeMyPageModal();
-    
-    // 강사 목록 새로고침
+
+    // ✅ 종목 데이터 먼저 새로고침 (Firebase에서 최신 카운트 가져오기)
+    const { refreshSportsWithCounts } = await import("./modules/sports.js");
+    const updatedSports = await refreshSportsWithCounts();
+
+    // ✅ 종목 UI 업데이트
+    if (window.loadAndDisplaySports) {
+      const { setSportsData } = await import("./modules/ui/sports-ui.js");
+      setSportsData(updatedSports);
+      await window.loadAndDisplaySports();
+    }
+
+    // ✅ 강사 목록 새로고침
     if (window.loadAndDisplayInstructors) {
       await window.loadAndDisplayInstructors();
     }
-    
-    // 통계 업데이트
+
+    // ✅ 통계 업데이트 (강제 새로고침)
     if (window.updateStats) {
-      await window.updateStats();
-    }
-    
-    // 종목 카운트 업데이트 (종목 카드의 숫자가 즉시 업데이트됨)
-    if (window.loadAndDisplaySports) {
-      await window.loadAndDisplaySports();
+      await window.updateStats(true); // ← forceRefresh = true
     }
   } catch (error) {
     console.error("프로필 삭제 실패:", error);
@@ -255,8 +281,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   console.log("🚀 FitMatch 페이지 로드 시작");
 
   try {
-    // 1. 종목 데이터 로드
-    sportsDataGlobal = await loadSportsData();
+    // 1. ✅ 종목 데이터 로드 및 강사 수 카운트 업데이트
+    const { refreshSportsWithCounts } = await import("./modules/sports.js");
+    sportsDataGlobal = await refreshSportsWithCounts();
     setSportsData(sportsDataGlobal);
     setInstructorSportsData(sportsDataGlobal);
 
