@@ -23,6 +23,12 @@ export function initMyPageUI() {
       return;
     }
 
+    // ✅ userData가 null인 경우 체크
+    if (!userData) {
+      alert("⚠️ 사용자 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
+      return;
+    }
+
     openMyPageModalHelper();
 
     const tabsContainer = document.getElementById("mypageTabs");
@@ -212,7 +218,7 @@ export function initMyPageUI() {
     profileContent.innerHTML = '<p style="text-align: center; padding: 40px; color: #6b7280;">📦 로딩 중...</p>';
     
     try {
-      if (userData.type === "student") {
+      if (userData && userData.type === "student") {
         profileContent.innerHTML = renderStudentProfile(userData);
         return;
       }
