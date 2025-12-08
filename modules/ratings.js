@@ -1,5 +1,5 @@
 // ============================================================
-// 평가 관련 함수
+// 평가 관련 함수 (보안 강화 버전 - Production Ready)
 // ============================================================
 import { db } from './firebase-config.js';
 import {
@@ -11,11 +11,58 @@ import {
   doc,
   getDoc,
   updateDoc,
+  deleteDoc,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getCurrentUser } from './auth.js';
 
-// 평가 제출
+// ============================================================
+// 🔒 권한 검증 헬퍼 함수
+// ============================================================
+
+function verifyAuthenticated() {
+  const user = getCurrentUser();
+  if (!user) {
+    throw new Error("로그인이 필요합니다.");
+  }
+  return user;
+}
+
+async function verifyReviewOwner(reviewId, currentUid) {
+  const reviewDoc = await getDoc(doc(db, "ratings", reviewId));
+  
+  if (!reviewDoc.exists()) {
+    throw new Error("리뷰를 찾을 수 없습니다.");
+  }
+  
+  const reviewData = reviewDoc.data();
+  
+  if (reviewData.userId !== currentUid) {
+    throw new Error("본인의 리뷰만 수정/삭제할 수 있습니다.");
+  }
+  
+  return reviewData;
+}
+
+// ============================================================
+// 평가 관련 함수
+// ============================================================
+
 export async function submitRating({ instructorId, userId, userName, rating, comment, bookingId }) {
-  // 평가 저장
+  const user = verifyAuthenticated();
+  
+  if (userId !== user.uid) {
+    throw new Error("본인의 리뷰만 작성할 수 있습니다.");
+  }
+  
+  if (rating < 1 || rating > 5 || !Number.isInteger(rating)) {
+    throw new Error("평점은 1~5 사이의 정수여야 합니다.");
+  }
+  
+  const existingReview = await hasRated(instructorId, userId);
+  if (existingReview) {
+    throw new Error("이미 이 강사에 대한 평가를 작성하셨습니다.");
+  }
+  
   await addDoc(collection(db, "ratings"), {
     instructorId: instructorId,
     userId: userId,
@@ -26,26 +73,36 @@ export async function submitRating({ instructorId, userId, userName, rating, com
     createdAt: new Date().toISOString(),
   });
   
-  // 강사의 평균 평점 업데이트
-  const instructorRef = doc(db, "instructors", instructorId);
-  const instructorDoc = await getDoc(instructorRef);
-  const instructorData = instructorDoc.data();
-  
-  const currentAvg = instructorData.averageRating || 0;
-  const currentCount = instructorData.ratingCount || 0;
-  const newCount = currentCount + 1;
-  const newAvg = ((currentAvg * currentCount) + rating) / newCount;
-  
-  await updateDoc(instructorRef, {
-    averageRating: newAvg,
-    ratingCount: newCount,
-  });
-  
-  console.log(`✅ 평가 저장 완료: 강사 ${instructorId}, 평점 ${rating}, 새 평균 ${newAvg.toFixed(1)} (${newCount}개)`);
+  await updateInstructorRating(instructorId);
 }
 
-// 이미 평가했는지 확인
+async function updateInstructorRating(instructorId) {
+  const reviews = await getInstructorReviews(instructorId);
+  
+  if (reviews.length === 0) {
+    await updateDoc(doc(db, "instructors", instructorId), {
+      averageRating: 0,
+      ratingCount: 0,
+    });
+    return;
+  }
+  
+  const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+  const averageRating = totalRating / reviews.length;
+  
+  await updateDoc(doc(db, "instructors", instructorId), {
+    averageRating: parseFloat(averageRating.toFixed(1)),
+    ratingCount: reviews.length,
+  });
+}
+
 export async function hasRated(instructorId, userId) {
+  const user = verifyAuthenticated();
+  
+  if (userId !== user.uid) {
+    throw new Error("본인의 리뷰만 확인할 수 있습니다.");
+  }
+  
   const q = query(
     collection(db, "ratings"),
     where("instructorId", "==", instructorId),
@@ -56,7 +113,6 @@ export async function hasRated(instructorId, userId) {
   return !querySnapshot.empty;
 }
 
-// 강사의 모든 리뷰 가져오기
 export async function getInstructorReviews(instructorId, sortBy = "latest") {
   const q = query(
     collection(db, "ratings"),
@@ -70,7 +126,6 @@ export async function getInstructorReviews(instructorId, sortBy = "latest") {
     reviews.push({ id: doc.id, ...doc.data() });
   });
   
-  // 정렬
   if (sortBy === "latest") {
     return reviews.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   } else if (sortBy === "highest") {
@@ -82,7 +137,6 @@ export async function getInstructorReviews(instructorId, sortBy = "latest") {
   return reviews;
 }
 
-// 리뷰 통계 가져오기
 export async function getReviewStats(instructorId) {
   const reviews = await getInstructorReviews(instructorId);
   
@@ -103,4 +157,30 @@ export async function getReviewStats(instructorId) {
   stats.average = (sum / reviews.length).toFixed(1);
   
   return stats;
+}
+
+export async function updateReview(reviewId, updatedData) {
+  const user = verifyAuthenticated();
+  const reviewData = await verifyReviewOwner(reviewId, user.uid);
+  
+  if (updatedData.rating && (updatedData.rating < 1 || updatedData.rating > 5 || !Number.isInteger(updatedData.rating))) {
+    throw new Error("평점은 1~5 사이의 정수여야 합니다.");
+  }
+  
+  await updateDoc(doc(db, "ratings", reviewId), {
+    ...updatedData,
+    updatedAt: new Date().toISOString(),
+  });
+  
+  if (updatedData.rating) {
+    await updateInstructorRating(reviewData.instructorId);
+  }
+}
+
+export async function deleteReview(reviewId) {
+  const user = verifyAuthenticated();
+  const reviewData = await verifyReviewOwner(reviewId, user.uid);
+  
+  await deleteDoc(doc(db, "ratings", reviewId));
+  await updateInstructorRating(reviewData.instructorId);
 }
