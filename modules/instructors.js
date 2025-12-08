@@ -1,5 +1,5 @@
 // ============================================================
-// 강사 관련 함수
+// 강사 관련 함수 (보안 강화 + 통계 자동 업데이트)
 // ============================================================
 import { db } from './firebase-config.js';
 import {
@@ -13,12 +13,49 @@ import {
   getDoc,
   deleteDoc,
   updateDoc,
-  setDoc,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { updateSportCounts, loadSportsData } from './sports.js';
+import { refreshSportsWithCounts } from './sports.js';
+import { getCurrentUser } from './auth.js';
 
-// 강사 등록
+// ============================================================
+// 🔒 권한 검증 헬퍼 함수
+// ============================================================
+
+function verifyAuthenticated() {
+  const user = getCurrentUser();
+  if (!user) {
+    throw new Error("로그인이 필요합니다.");
+  }
+  return user;
+}
+
+async function verifyProfileOwner(profileId, currentUid) {
+  const profileDoc = await getDoc(doc(db, "instructors", profileId));
+  
+  if (!profileDoc.exists()) {
+    throw new Error("강사 프로필을 찾을 수 없습니다.");
+  }
+  
+  const profileData = profileDoc.data();
+  
+  if (profileData.uid !== currentUid) {
+    throw new Error("본인의 프로필만 수정/삭제할 수 있습니다.");
+  }
+  
+  return profileData;
+}
+
+// ============================================================
+// 강사 관련 함수
+// ============================================================
+
 export async function registerInstructor(uid, instructorData) {
+  const user = verifyAuthenticated();
+  
+  if (uid !== user.uid) {
+    throw new Error("본인의 프로필만 생성할 수 있습니다.");
+  }
+  
   await addDoc(collection(db, "instructors"), {
     uid: uid,
     ...instructorData,
@@ -28,13 +65,13 @@ export async function registerInstructor(uid, instructorData) {
     createdAt: new Date().toISOString(),
   });
   
-  // 스포츠별 강사 수 업데이트
   await updateSportCountsAfterChange();
+  
+  // ✅ 통계 자동 업데이트 (강제 새로고침)
+  await updateStatisticsAfterChange();
 }
 
-// 강사 목록 로드
 export async function loadInstructors(filterSport = null, filterRegion = null, searchText = null) {
-  // 모든 강사 데이터를 가져온 후 클라이언트에서 필터링 (인덱스 문제 회피)
   let q = query(collection(db, "instructors"), orderBy("averageRating", "desc"));
   
   const querySnapshot = await getDocs(q);
@@ -43,17 +80,14 @@ export async function loadInstructors(filterSport = null, filterRegion = null, s
   querySnapshot.forEach((docSnap) => {
     const data = docSnap.data();
     
-    // 종목 필터 체크 (선택된 경우에만)
     if (filterSport && data.sport !== filterSport) {
-      return; // 종목이 일치하지 않으면 제외
+      return;
     }
     
-    // 지역 필터 체크 (선택된 경우에만)
     if (filterRegion && data.region !== filterRegion) {
-      return; // 지역이 일치하지 않으면 제외
+      return;
     }
     
-    // 검색어 필터 체크 (입력된 경우에만)
     if (searchText) {
       const searchLower = searchText.toLowerCase();
       const matchesName = data.name.toLowerCase().includes(searchLower);
@@ -61,18 +95,16 @@ export async function loadInstructors(filterSport = null, filterRegion = null, s
       const matchesIntro = data.introduction.toLowerCase().includes(searchLower);
       
       if (!matchesName && !matchesSport && !matchesIntro) {
-        return; // 검색어와 일치하지 않으면 제외
+        return;
       }
     }
     
-    // 모든 필터를 통과한 강사만 추가
     instructors.push({ id: docSnap.id, ...data });
   });
   
   return instructors;
 }
 
-// 강사 상세 정보 가져오기
 export async function getInstructorById(instructorId) {
   const instructorDoc = await getDoc(doc(db, "instructors", instructorId));
   if (instructorDoc.exists()) {
@@ -81,35 +113,41 @@ export async function getInstructorById(instructorId) {
   return null;
 }
 
-// 강사 프로필 삭제
 export async function deleteInstructorProfile(profileId) {
-  await deleteDoc(doc(db, "instructors", profileId));
+  const user = verifyAuthenticated();
+  await verifyProfileOwner(profileId, user.uid);
   
-  // 스포츠별 강사 수 업데이트
+  await deleteDoc(doc(db, "instructors", profileId));
   await updateSportCountsAfterChange();
+  
+  // ✅ 통계 자동 업데이트 (강제 새로고침)
+  await updateStatisticsAfterChange();
 }
 
-// 강사 프로필 수정
 export async function updateInstructorProfile(profileId, updatedData) {
-  const instructorRef = doc(db, "instructors", profileId);
+  const user = verifyAuthenticated();
+  const oldData = await verifyProfileOwner(profileId, user.uid);
   
-  // 기존 데이터 가져오기
-  const oldData = await getDoc(instructorRef);
-  const oldSport = oldData.exists() ? oldData.data().sport : null;
+  const instructorRef = doc(db, "instructors", profileId);
+  const oldSport = oldData.sport;
   
   await updateDoc(instructorRef, {
     ...updatedData,
     updatedAt: new Date().toISOString(),
   });
   
-  // 종목이 변경된 경우 스포츠별 강사 수 업데이트
   if (updatedData.sport && oldSport !== updatedData.sport) {
     await updateSportCountsAfterChange();
   }
 }
 
-// 내 강사 프로필 가져오기 (첫 번째만)
 export async function getMyInstructorProfile(uid) {
+  const user = verifyAuthenticated();
+  
+  if (uid !== user.uid) {
+    throw new Error("본인의 프로필만 조회할 수 있습니다.");
+  }
+  
   const q = query(collection(db, "instructors"), where("uid", "==", uid));
   const querySnapshot = await getDocs(q);
   
@@ -119,8 +157,13 @@ export async function getMyInstructorProfile(uid) {
   return null;
 }
 
-// ✅ 내 강사 프로필 모두 가져오기 (여러 개)
 export async function getMyInstructorProfiles(uid) {
+  const user = verifyAuthenticated();
+  
+  if (uid !== user.uid) {
+    throw new Error("본인의 프로필만 조회할 수 있습니다.");
+  }
+  
   const q = query(collection(db, "instructors"), where("uid", "==", uid));
   const querySnapshot = await getDocs(q);
   
@@ -132,17 +175,26 @@ export async function getMyInstructorProfiles(uid) {
   return profiles;
 }
 
-// 스포츠별 강사 수 업데이트 헬퍼 함수
 async function updateSportCountsAfterChange() {
   try {
-    // 최신 스포츠 데이터 로드
-    const sportsData = await loadSportsData();
-    
-    // 강사 수 업데이트 및 저장
-    await updateSportCounts(sportsData);
-    
-    console.log('✅ 스포츠별 강사 수가 업데이트되었습니다.');
+    await refreshSportsWithCounts();
   } catch (error) {
-    console.error('❌ 스포츠별 강사 수 업데이트 실패:', error);
+    console.warn("⚠️ 스포츠 카운트 업데이트 실패:", error);
+  }
+}
+
+// ✅ 통계 업데이트 헬퍼 함수 (강제 새로고침)
+async function updateStatisticsAfterChange() {
+  try {
+    const { updateStatisticsCache } = await import('./statistics.js');
+    await updateStatisticsCache();
+    console.log("✅ 강사 변경 - 통계 캐시 업데이트 완료");
+    
+    // ✅ UI 통계 즉시 반영 (강제 새로고침)
+    if (window.updateStats) {
+      await window.updateStats(true);  // ← forceRefresh = true
+    }
+  } catch (error) {
+    console.warn("⚠️ 통계 업데이트 실패:", error);
   }
 }

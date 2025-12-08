@@ -23,15 +23,15 @@ import {
   renderInstructorDetail,
 } from "../ui-renderers.js";
 import {
-  uploadImageToCloudinary,
-  compressImage,
-} from "../cloudinary-upload.js";
+  getImageUploadManager,
+  resetImageUploadManager,
+} from "../image-upload-manager.js";
 
 // 전역 변수
 export let sportsData = [];
 export let allInstructors = [];
 export let selectedRating = 0;
-export let newInstructorImageUrl = null; // 신규 강사 등록용
+// ✅ 이미지 업로드 관리자 사용 (전역 변수 제거)
 
 export function setSportsData(data) {
   sportsData = data;
@@ -57,8 +57,10 @@ export function initInstructorRegisterModal() {
     await loadSportsForSelect();
     openInstructorModal();
 
-    // 이미지 초기화
-    newInstructorImageUrl = null;
+    // ✅ 이미지 업로드 관리자 초기화
+    resetImageUploadManager("newInstructor");
+    
+    // 기본 이미지로 초기화
     const preview = document.getElementById("newInstructorProfilePreview");
     if (preview) {
       preview.src =
@@ -73,39 +75,22 @@ export function initInstructorRegisterModal() {
   window.closeInstructorModal = closeInstructorModal;
 }
 
-// 신규 강사 이미지 업로드 핸들러 (즉시 바인딩)
+// ✅ 신규 강사 이미지 업로드 핸들러 (개선 버전)
 async function handleNewInstructorImageChangeFunc(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  if (file.size > 5 * 1024 * 1024) {
-    alert("⚠️ 이미지 크기는 5MB 이하여야 합니다.");
-    return;
-  }
-
-  if (!file.type.startsWith("image/")) {
-    alert("⚠️ 이미지 파일만 업로드 가능합니다.");
-    return;
-  }
-
-  const statusElement = document.getElementById("newInstructorUploadStatus");
+  const manager = getImageUploadManager(
+    "newInstructor",
+    "newInstructorProfilePreview",
+    "newInstructorUploadStatus"
+  );
 
   try {
-    statusElement.textContent = "📤 업로드 중...";
-    statusElement.style.color = "#3b82f6";
-
-    const compressedFile = await compressImage(file, 800);
-    newInstructorImageUrl = await uploadImageToCloudinary(compressedFile);
-
-    const preview = document.getElementById("newInstructorProfilePreview");
-    preview.src = newInstructorImageUrl;
-
-    statusElement.textContent = "✅ 업로드 완료!";
-    statusElement.style.color = "#10b981";
+    await manager.uploadImage(file);
+    console.log("✅ 신규 강사 이미지 업로드 성공");
   } catch (error) {
-    console.error("이미지 업로드 실패:", error);
-    statusElement.textContent = "❌ 업로드 실패";
-    statusElement.style.color = "#dc2626";
+    console.error("❌ 신규 강사 이미지 업로드 실패:", error);
     alert("❌ 이미지 업로드에 실패했습니다.");
   }
 }
@@ -162,6 +147,7 @@ export function initRegisterInstructorHandler() {
     }
 
     try {
+      // 프로필 데이터 준비
       const profileData = {
         name,
         sport,
@@ -174,9 +160,16 @@ export function initRegisterInstructorHandler() {
           : [],
       };
 
-      // 프로필 이미지가 있으면 추가
-      if (newInstructorImageUrl) {
-        profileData.profileImage = newInstructorImageUrl;
+      // ✅ 이미지 URL 가져오기
+      const manager = getImageUploadManager(
+        "newInstructor",
+        "newInstructorProfilePreview",
+        "newInstructorUploadStatus"
+      );
+      const uploadedUrl = manager.getImageUrl();
+      if (uploadedUrl) {
+        profileData.profileImage = uploadedUrl;
+        console.log("✅ 프로필 이미지 포함:", uploadedUrl);
       }
 
       await registerInstructorAPI(user.uid, profileData);
@@ -193,19 +186,26 @@ export function initRegisterInstructorHandler() {
       document.getElementById("instructorIntro").value = "";
       document.getElementById("instructorCertificates").value = "";
 
-      // 이미지 초기화
-      newInstructorImageUrl = null;
+      // ✅ 이미지 업로드 관리자 초기화
+      resetImageUploadManager("newInstructor");
 
+      // ✅ 종목 데이터 먼저 새로고침 (Firebase에서 최신 카운트 가져오기)
+      const { refreshSportsWithCounts } = await import("../sports.js");
+      const updatedSports = await refreshSportsWithCounts();
+      
+      // ✅ 종목 UI 업데이트
+      if (window.loadAndDisplaySports) {
+        const { setSportsData } = await import("./sports-ui.js");
+        setSportsData(updatedSports);
+        await window.loadAndDisplaySports();
+      }
+      
+      // ✅ 강사 목록 새로고침
       await window.loadAndDisplayInstructors();
       
       // ✅ 통계 업데이트
       if (window.updateStats) {
         await window.updateStats();
-      }
-
-      // ✅ 종목 카운트 업데이트 (종목 카드의 숫자가 즉시 업데이트됨)
-      if (window.loadAndDisplaySports) {
-        await window.loadAndDisplaySports();
       }
     } catch (error) {
       console.error("❌ 강사 등록 실패:", error);
