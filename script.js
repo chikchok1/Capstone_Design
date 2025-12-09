@@ -141,6 +141,14 @@ setupAuthListener(async (user) => {
 
     // 통계 업데이트
     updateStats();
+  
+  // ✅ 통계 문서 초기화 (최초 1회만)
+  try {
+    const { initializeStatistics } = await import("./modules/statistics.js");
+    await initializeStatistics();
+  } catch (error) {
+    console.warn("⚠️ 통계 초기화 실패 (무시):", error);
+  }
   } else {
     setCurrentUser(null);
     setCurrentUserData(null);
@@ -165,7 +173,8 @@ setupAuthListener(async (user) => {
 // ✅ forceRefresh 옵션 추가: true일 때 캐시 무시하고 실시간 계산
 async function updateStats(forceRefresh = false) {
   try {
-    const stats = await getStatistics(forceRefresh);
+    // ✅ 항상 캐시에서 가져오기 (increment/decrement가 이미 캐시를 업데이트함)
+    const stats = await getStatistics(false); // ← 캐시에서 가져오기
 
     const statInstructors = document.getElementById("statInstructors");
     const statBookings = document.getElementById("statBookings");
@@ -304,4 +313,30 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 });
 
+// ✅ 평점 재계산 함수 (콘솔에서 실행)
+window.fixRatings = async function() {
+  console.log("🔧 평점 재계산 시작...");
+  
+  try {
+    const { recalculateAllInstructorRatings } = await import("./modules/ratings.js");
+    const result = await recalculateAllInstructorRatings();
+    
+    console.log("✅ 재계산 완료:", result);
+    
+    // ✅ UI 새로고침
+    if (window.updateStats) {
+      await window.updateStats(true);
+    }
+    if (window.loadAndDisplayInstructors) {
+      await window.loadAndDisplayInstructors();
+    }
+    
+    alert(`✅ 평점 재계산 완료!\n\n총 ${result.total}명의 강사 중 ${result.updated}명 업데이트되었습니다.`);
+  } catch (error) {
+    console.error("❌ 평점 재계산 실패:", error);
+    alert("❌ 평점 재계산에 실패했습니다.");
+  }
+};
+
+console.log("✅ 평점 재계산 함수 등록됨: window.fixRatings()");
 console.log("🚀 FitMatch 페이지 로드 완료");

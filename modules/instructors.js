@@ -183,14 +183,14 @@ async function updateSportCountsAfterChange() {
   }
 }
 
-// ✅ 통계 업데이트 헬퍼 함수 (강제 새로고침)
+// ✅ 통계 업데이트 헬퍼 함수 (강사 수만 업데이트)
 async function updateStatisticsAfterChange() {
   try {
-    const { updateStatisticsCache } = await import('./statistics.js');
-    await updateStatisticsCache();
-    console.log("✅ 강사 변경 - 통계 캐시 업데이트 완료");
+    const { updateInstructorCount } = await import('./statistics.js');
+    await updateInstructorCount();
+    console.log("✅ 강사 변경 - 강사 수 업데이트 완료");
     
-    // ✅ UI 통계 즉시 반영 (강제 새로고침)
+    // ✅ UI 통계 즉시 반영
     if (window.updateStats) {
       await window.updateStats(true);  // ← forceRefresh = true
     }

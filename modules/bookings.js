@@ -169,16 +169,11 @@ export async function confirmBooking(bookingId) {
     confirmedAt: new Date().toISOString(),
   });
 
-  // ✅ 통계 자동 업데이트 (강제 새로고침)
+  // ✅ 예약 카운터 증가
   try {
-    const { updateStatisticsCache } = await import("./statistics.js");
-    await updateStatisticsCache();
-    console.log("✅ 예약 확정 - 통계 업데이트 완료");
-
-    // ✅ UI 통계 즉시 반영 (강제 새로고침)
-    if (window.updateStats) {
-      await window.updateStats(true); // ← forceRefresh = true
-    }
+    const { incrementBookingCount } = await import("./statistics.js");
+    await incrementBookingCount();
+    console.log("✅ 예약 확정 - 통계 카운터 +1");
   } catch (error) {
     console.warn("⚠️ 통계 업데이트 실패:", error);
   }
@@ -250,17 +245,12 @@ export async function cancelBooking(
     cancelledBy: cancelledBy,
   });
 
-  // ✅ 통계 자동 업데이트 (confirmed 였던 예약을 취소하면 카운트 감소)
+  // ✅ 예약 카운터 감소 (confirmed 예약만)
   if (bookingData.status === "confirmed") {
     try {
-      const { updateStatisticsCache } = await import("./statistics.js");
-      await updateStatisticsCache();
-      console.log("✅ 예약 취소 - 통계 업데이트 완료");
-
-      // ✅ UI 통계 즉시 반영 (강제 새로고침)
-      if (window.updateStats) {
-        await window.updateStats(true); // ← forceRefresh = true
-      }
+      const { decrementBookingCount } = await import("./statistics.js");
+      await decrementBookingCount();
+      console.log("✅ 예약 취소 - 통계 카운터 -1");
     } catch (error) {
       console.warn("⚠️ 통계 업데이트 실패:", error);
     }

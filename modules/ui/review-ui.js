@@ -2,7 +2,7 @@
 // 리뷰 UI 모듈
 // ============================================================
 import { auth } from "../firebase-config.js";
-import { submitRating, getInstructorReviews, getReviewStats } from "../ratings.js";
+import { submitRating, getInstructorReviews, getReviewStats, hasConfirmedBooking } from "../ratings.js";
 
 export let selectedRating = 0;
 export let currentRatingBooking = null;
@@ -10,9 +10,10 @@ export let selectedRatingForModal = 0;
 export let currentInstructorIdForModal = null;
 
 export function initReviewUI() {
-  window.selectRating = function (rating) {
+  // ✅ 예약 모달에서 별점 선택
+  window.selectRatingFromBooking = function (rating) {
     selectedRating = rating;
-    const stars = document.querySelectorAll(".rating-star");
+    const stars = document.querySelectorAll("#ratingModal .rating-star");
     stars.forEach((star, index) => {
       if (index < rating) {
         star.style.fontSize = "2rem";
@@ -25,6 +26,7 @@ export function initReviewUI() {
   };
 
   window.openRatingModal = function (booking) {
+    console.log("📝 평가 모달 열기:", booking);
     currentRatingBooking = booking;
     selectedRating = 0;
 
@@ -40,7 +42,7 @@ export function initReviewUI() {
           
           <div style="text-align: center; margin: 30px 0;">
             <div class="rating-stars">
-              ${[1, 2, 3, 4, 5].map(i => `<span class="rating-star" onclick="selectRating(${i})">⭐</span>`).join('')}
+              ${[1, 2, 3, 4, 5].map(i => `<span class="rating-star" onclick="selectRatingFromBooking(${i})" style="cursor: pointer;">⭐</span>`).join('')}
             </div>
           </div>
 
@@ -76,9 +78,20 @@ export function initReviewUI() {
     }
 
     const user = auth.currentUser;
-    if (!user) return;
+    if (!user) {
+      alert("🔒 로그인이 필요합니다!");
+      return;
+    }
 
     const comment = document.getElementById("ratingComment").value.trim();
+
+    console.log("📤 평가 제출 데이터:", {
+      instructorId: currentRatingBooking.instructorId,
+      userId: user.uid,
+      rating: selectedRating,
+      comment,
+      bookingId: currentRatingBooking.id,
+    });
 
     try {
       await submitRating({
@@ -92,6 +105,11 @@ export function initReviewUI() {
       alert("✅ 평가가 등록되었습니다!");
       window.closeRatingModal();
 
+      // ✅ 통계 업데이트
+      if (window.updateStats) {
+        await window.updateStats(true); // forceRefresh = true
+      }
+
       if (window.loadMyBookingsList) {
         await window.loadMyBookingsList();
       }
@@ -99,8 +117,8 @@ export function initReviewUI() {
         await window.loadAndDisplayInstructors();
       }
     } catch (error) {
-      console.error("평가 등록 실패:", error);
-      alert("평가 등록 중 오류가 발생했습니다.");
+      console.error("❌ 평가 등록 실패:", error);
+      alert(error.message || "평가 등록 중 오류가 발생했습니다.");
     }
   };
 
@@ -174,10 +192,10 @@ export function initReviewUI() {
   };
 
   // ✅ 강사 상세 모달에서 별점 선택
-  window.selectRating = function(rating, instructorId) {
+  window.selectRatingForInstructor = function(rating, instructorId) {
     selectedRatingForModal = rating;
     currentInstructorIdForModal = instructorId;
-    const stars = document.querySelectorAll(`#ratingStars .rating-star`);
+    const stars = document.querySelectorAll("#instructorDetailModal #ratingStars .rating-star");
     stars.forEach((star, index) => {
       if (index < rating) {
         star.style.fontSize = "2rem";
@@ -189,7 +207,7 @@ export function initReviewUI() {
     });
   };
 
-  // ✅ 강사 상세 모달에서 평가 제출
+  // ✅ 강사 상세 모달에서 평가 제출 (예약 확정 여부 확인)
   window.submitRatingFromModal = async function(instructorId) {
     if (selectedRatingForModal === 0) {
       alert("⭐ 별점을 선택해주세요!");
@@ -203,6 +221,13 @@ export function initReviewUI() {
     }
 
     const comment = document.getElementById("ratingComment")?.value.trim() || "";
+
+    console.log("📤 강사 상세에서 평가 제출:", {
+      instructorId,
+      userId: user.uid,
+      rating: selectedRatingForModal,
+      comment,
+    });
 
     try {
       await submitRating({
@@ -221,24 +246,31 @@ export function initReviewUI() {
         window.closeInstructorDetailModal();
       }
 
+      // ✅ 통계 업데이트 (평균 만족도 반영)
+      if (window.updateStats) {
+        await window.updateStats(true); // forceRefresh = true
+      }
+
       // 강사 목록 새로고침
       if (window.loadAndDisplayInstructors) {
         await window.loadAndDisplayInstructors();
       }
-
-      // 통계 업데이트 (평균 만족도 반영)
-      if (window.updateStats) {
-        await window.updateStats();
-      }
     } catch (error) {
-      console.error("평가 등록 실패:", error);
-      alert("평가 등록 중 오류가 발생했습니다.");
+      console.error("❌ 평가 등록 실패:", error);
+      alert(error.message || "평가 등록 중 오류가 발생했습니다.");
     }
   };
 
-  // ✅ 예약 카드에서 평가 모달 열기
-  window.openRatingFromBooking = function(instructorId, instructorName) {
-    currentRatingBooking = { instructorId, instructorName };
-    window.openRatingModal({ instructorId, instructorName });
+  // ✅ 예약 확정 여부 확인 함수 (UI에서 평가 버튼 표시 여부 결정)
+  window.checkCanReview = async function(instructorId) {
+    const user = auth.currentUser;
+    if (!user) return false;
+
+    try {
+      return await hasConfirmedBooking(instructorId, user.uid);
+    } catch (error) {
+      console.error("예약 확인 실패:", error);
+      return false;
+    }
   };
 }

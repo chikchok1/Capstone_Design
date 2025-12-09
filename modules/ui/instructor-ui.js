@@ -256,6 +256,20 @@ export function initInstructorList() {
 
 // ✅ 강사 상세 보기 - isOwner 체크 추가!
 export function initInstructorDetail() {
+  window.openInstructorDetail = async function (instructorId) {
+    try {
+      const instructor = await getInstructorById(instructorId);
+      if (!instructor) {
+        alert("강사 정보를 찾을 수 없습니다.");
+        return;
+      }
+      await window.showInstructorDetail(instructor);
+    } catch (error) {
+      console.error("강사 상세 로드 실패:", error);
+      alert("강사 정보를 불러오는 중 오류가 발생했습니다.");
+    }
+  };
+  
   window.showInstructorDetail = async function (instructor) {
     const user = auth.currentUser;
     const userData = getCurrentUserData();

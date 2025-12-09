@@ -9,6 +9,7 @@ import {
   getDoc,
   setDoc,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getCurrentUser } from './auth.js';
 
 const defaultSports = [
   { name: "테니스", icon: "🎾", count: 0, category: "ball", isNew: false },
@@ -121,14 +122,28 @@ export async function loadSportsData() {
       if (sportsData.length === 0) {
         console.warn("⚠️ Firebase에 종목 데이터가 없습니다. 기본 데이터로 초기화합니다.");
         sportsData = defaultSports;
-        await setDoc(doc(db, "settings", "sports"), { list: sportsData });
-        console.log("✅ Firebase에 기본 종목 데이터 저장 완료");
+        
+        // ✅ 로그인된 사용자만 Firebase에 저장
+        const user = getCurrentUser();
+        if (user) {
+          await setDoc(doc(db, "settings", "sports"), { list: sportsData });
+          console.log("✅ Firebase에 기본 종목 데이터 저장 완료");
+        } else {
+          console.log("⚠️ 로그인하지 않아 Firebase에 저장하지 않음");
+        }
       }
     } else {
       console.log("📝 Firebase에 문서가 없습니다. 기본 데이터로 초기화합니다.");
       sportsData = defaultSports;
-      await setDoc(doc(db, "settings", "sports"), { list: sportsData });
-      console.log("✅ Firebase에 기본 종목 데이터 저장 완료");
+      
+      // ✅ 로그인된 사용자만 Firebase에 저장
+      const user = getCurrentUser();
+      if (user) {
+        await setDoc(doc(db, "settings", "sports"), { list: sportsData });
+        console.log("✅ Firebase에 기본 종목 데이터 저장 완료");
+      } else {
+        console.log("⚠️ 로그인하지 않아 Firebase에 저장하지 않음");
+      }
     }
 
     console.log("✅ 최종 반환 종목 수:", sportsData.length);
@@ -166,8 +181,14 @@ export async function updateSportCounts(sportsData) {
       }
     });
 
-    await setDoc(doc(db, "settings", "sports"), { list: sportsData });
-    console.log("✅ 종목별 강사 수 업데이트 완료 및 Firebase 저장 완료");
+    // ✅ 로그인된 사용자만 Firebase에 저장
+    const user = getCurrentUser();
+    if (user) {
+      await setDoc(doc(db, "settings", "sports"), { list: sportsData });
+      console.log("✅ 종목별 강사 수 업데이트 완료 및 Firebase 저장 완료");
+    } else {
+      console.log("✅ 종목별 강사 수 업데이트 완료 (로그인하지 않아 Firebase에 저장하지 않음)");
+    }
 
     return sportsData;
   } catch (error) {

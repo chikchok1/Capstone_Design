@@ -9,11 +9,12 @@ export function renderInstructorCard(instructor, onClick) {
   
   const rating = instructor.averageRating || 0;
   const ratingCount = instructor.ratingCount || 0;
-  const stars = rating > 0 ? "⭐".repeat(Math.round(rating)) : "⭐".repeat(0);
+  // ✅ 별 표시: rating이 0이면 회색 별 5개, 있으면 노란 별
+  const stars = rating > 0 ? "⭐".repeat(Math.round(rating)) : "☆☆☆☆☆";
   const ratingText =
     rating > 0
       ? `${stars} ${rating.toFixed(1)} (${ratingCount}명 평가)`
-      : "아직 평가 없음";
+      : `${stars} 아직 평가 없음`;
 
   const certBadges =
     instructor.certificates && instructor.certificates.length > 0
@@ -148,11 +149,11 @@ export function renderInstructorDetail(
         <div style="background: #fef3c7; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
           <h4 style="margin-bottom: 10px; text-align: center;">⭐ 이 강사님을 평가해주세요</h4>
           <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 10px;" id="ratingStars">
-            <span class="rating-star" data-rating="1" onclick="selectRating(1, '${instructor.id}')">⭐</span>
-            <span class="rating-star" data-rating="2" onclick="selectRating(2, '${instructor.id}')">⭐</span>
-            <span class="rating-star" data-rating="3" onclick="selectRating(3, '${instructor.id}')">⭐</span>
-            <span class="rating-star" data-rating="4" onclick="selectRating(4, '${instructor.id}')">⭐</span>
-            <span class="rating-star" data-rating="5" onclick="selectRating(5, '${instructor.id}')">⭐</span>
+            <span class="rating-star" data-rating="1" onclick="selectRatingForInstructor(1, '${instructor.id}')" style="cursor: pointer;">⭐</span>
+            <span class="rating-star" data-rating="2" onclick="selectRatingForInstructor(2, '${instructor.id}')" style="cursor: pointer;">⭐</span>
+            <span class="rating-star" data-rating="3" onclick="selectRatingForInstructor(3, '${instructor.id}')" style="cursor: pointer;">⭐</span>
+            <span class="rating-star" data-rating="4" onclick="selectRatingForInstructor(4, '${instructor.id}')" style="cursor: pointer;">⭐</span>
+            <span class="rating-star" data-rating="5" onclick="selectRatingForInstructor(5, '${instructor.id}')" style="cursor: pointer;">⭐</span>
           </div>
           <textarea id="ratingComment" class="input-field" rows="2" placeholder="한줄평을 남겨주세요 (선택)"></textarea>
           <button class="btn btn-primary btn-full" onclick="submitRatingFromModal('${instructor.id}')">
@@ -221,7 +222,7 @@ export function renderBookingCard(booking, hasRatedAlready) {
     <div style="display: flex; gap: 8px; margin-bottom: 12px;">
       ${
         !hasRatedAlready
-          ? `<button class="btn btn-primary" style="flex: 1;" onclick="openRatingFromBooking('${booking.instructorId}', '${booking.instructorName}')">
+          ? `<button class="btn btn-primary" style="flex: 1;" onclick='openRatingModal(${JSON.stringify(booking)})'>
           <span class="btn-icon">⭐</span> 강사 평가하기
         </button>`
           : `<div style="text-align: center; padding: 10px; background: #d1fae5; border-radius: 8px; flex: 1;">

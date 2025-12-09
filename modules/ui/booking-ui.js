@@ -166,7 +166,7 @@ export function initBookingUI() {
       
       // ✅ 통계 업데이트 (매칭 완료 숫자 증가)
       if (window.updateStats) {
-        await window.updateStats();
+        await window.updateStats(true); // ← forceRefresh = true 추가
       }
     } catch (error) {
       console.error("예약 확정 실패:", error);
@@ -296,7 +296,7 @@ export function initBookingUI() {
       }
       // ✅ 통계 업데이트 (매칭 완료 숫자 감소)
       if (window.updateStats) {
-        await window.updateStats();
+        await window.updateStats(true); // ← forceRefresh = true 추가
       }
     } catch (error) {
       console.error("예약 취소 실패:", error);
@@ -381,7 +381,7 @@ export function initBookingUI() {
       }
       // ✅ 통계 업데이트 (매칭 완료 숫자 감소)
       if (window.updateStats) {
-        await window.updateStats();
+        await window.updateStats(true); // ← forceRefresh = true 추가
       }
     } catch (error) {
       console.error("예약 취소 실패:", error);
