@@ -264,12 +264,105 @@ nav a:hover {
   margin-bottom: 25px;
 }
 
+.input-group {
+  text-align: left;
+  margin-bottom: 20px;
+}
+
+/* 날짜 빠른 선택 버튼 */
+.date-selector {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 0;
+}
+
+.date-quick-btn {
+  padding: 12px 8px;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+  color: #374151;
+}
+
+.date-quick-btn:hover {
+  border-color: #667eea;
+  color: #667eea;
+  transform: translateY(-2px);
+}
+
+.date-quick-btn.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: transparent;
+}
+
+/* 시간 빠른 선택 버튼 */
+.time-selector {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-bottom: 0;
+}
+
+.time-quick-btn {
+  padding: 10px 6px;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+  color: #374151;
+}
+
+.time-quick-btn:hover {
+  border-color: #667eea;
+  color: #667eea;
+  transform: translateY(-2px);
+}
+
+.time-quick-btn.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: transparent;
+}
+
+.selected-date-display {
+  margin-top: 10px;
+  padding: 10px;
+  background: #f0fdf4;
+  border-radius: 8px;
+  color: #059669;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  display: none;
+}
+
+.selected-date-display.show {
+  display: block;
+}
+
+.input-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #374151;
+  font-size: 14px;
+}
+
 .input-field {
   width: 100%;
   padding: 14px 18px;
   border: 2px solid #e5e7eb;
   border-radius: 12px;
-  margin-bottom: 15px;
+  margin-bottom: 0;
   font-size: 15px;
   transition: all 0.3s;
   background: #f9fafb;
@@ -882,6 +975,20 @@ footer p {
    반응형 디자인
 ======================================== */
 @media (max-width: 768px) {
+  .date-selector {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .time-selector {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .date-quick-btn,
+  .time-quick-btn {
+    font-size: 13px;
+    padding: 10px 6px;
+  }
+
   .hero h1 {
     font-size: 2rem;
   }
@@ -940,6 +1047,10 @@ footer p {
 }
 
 @media (max-width: 480px) {
+  .time-selector {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .stats-grid,
   .instructors-grid,
   .steps-grid {

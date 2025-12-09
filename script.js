@@ -164,6 +164,9 @@ setupAuthListener(async (user) => {
     if (instructorRegisterLink) {
       instructorRegisterLink.style.display = "none";
     }
+    
+    // ✅ 비로그인 상태에서도 통계 표시
+    updateStats();
   }
 });
 
@@ -306,6 +309,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (window.loadPopularSearches) {
       await window.loadPopularSearches();
     }
+    
+    // 5. ✅ 통계 표시 (비로그인 상태에서도)
+    await updateStats();
 
     console.log("✅ FitMatch 페이지 로드 완료");
   } catch (error) {

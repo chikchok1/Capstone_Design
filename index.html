@@ -282,9 +282,9 @@
       </div>
     </div>
 
-    <!-- 예약 모달 -->
+    <!-- 예약 모달 (개선된 버전) -->
     <div class="modal" id="bookingModal">
-      <div class="modal-content" style="max-width: 500px">
+      <div class="modal-content" style="max-width: 600px">
         <button class="modal-close" onclick="closeBookingModal()">×</button>
 
         <div class="auth-form">
@@ -293,25 +293,169 @@
             강사님께 레슨을 요청합니다
           </p>
 
-          <input type="date" id="bookingDate" class="input-field" />
-          <input type="time" id="bookingTime" class="input-field" />
-          <textarea
-            id="bookingMessage"
-            class="input-field"
-            rows="3"
-            placeholder="강사님께 전달할 메시지 (선택)"
-          ></textarea>
+          <!-- 날짜 선택 -->
+          <div class="input-group">
+            <label class="input-label">📅 희망 날짜</label>
+            <div class="date-selector">
+              <button
+                type="button"
+                class="date-quick-btn"
+                onclick="selectQuickDate(0)"
+              >
+                오늘
+              </button>
+              <button
+                type="button"
+                class="date-quick-btn"
+                onclick="selectQuickDate(1)"
+              >
+                내일
+              </button>
+              <button
+                type="button"
+                class="date-quick-btn"
+                onclick="selectQuickDate(2)"
+              >
+                모레
+              </button>
+              <button
+                type="button"
+                class="date-quick-btn"
+                onclick="selectQuickDate(7)"
+              >
+                일주일 후
+              </button>
+            </div>
+            <input
+              type="date"
+              id="bookingDate"
+              class="input-field"
+              style="margin-top: 10px"
+            />
+            <p class="selected-date-display" id="selectedDateDisplay"></p>
+          </div>
+
+          <!-- 시간 선택 -->
+          <div class="input-group">
+            <label class="input-label">🕐 희망 시간</label>
+            <div class="time-selector">
+              <button
+                type="button"
+                class="time-quick-btn"
+                onclick="selectQuickTime('09:00')"
+              >
+                오전 9시
+              </button>
+              <button
+                type="button"
+                class="time-quick-btn"
+                onclick="selectQuickTime('10:00')"
+              >
+                오전 10시
+              </button>
+              <button
+                type="button"
+                class="time-quick-btn"
+                onclick="selectQuickTime('11:00')"
+              >
+                오전 11시
+              </button>
+              <button
+                type="button"
+                class="time-quick-btn"
+                onclick="selectQuickTime('12:00')"
+              >
+                오후 12시
+              </button>
+              <button
+                type="button"
+                class="time-quick-btn"
+                onclick="selectQuickTime('13:00')"
+              >
+                오후 1시
+              </button>
+
+              <button
+                type="button"
+                class="time-quick-btn"
+                onclick="selectQuickTime('14:00')"
+              >
+                오후 2시
+              </button>
+              <button
+                type="button"
+                class="time-quick-btn"
+                onclick="selectQuickTime('15:00')"
+              >
+                오후 3시
+              </button>
+              <button
+                type="button"
+                class="time-quick-btn"
+                onclick="selectQuickTime('16:00')"
+              >
+                오후 4시
+              </button>
+              <button
+                type="button"
+                class="time-quick-btn"
+                onclick="selectQuickTime('17:00')"
+              >
+                오후 5시
+              </button>
+              <button
+                type="button"
+                class="time-quick-btn"
+                onclick="selectQuickTime('18:00')"
+              >
+                오후 6시
+              </button>
+              <button
+                type="button"
+                class="time-quick-btn"
+                onclick="selectQuickTime('19:00')"
+              >
+                오후 7시
+              </button>
+              <button
+                type="button"
+                class="time-quick-btn"
+                onclick="selectQuickTime('20:00')"
+              >
+                오후 8시
+              </button>
+            </div>
+            <input
+              type="time"
+              id="bookingTime"
+              class="input-field"
+              style="margin-top: 10px"
+              placeholder="직접 입력"
+            />
+          </div>
+
+          <div class="input-group">
+            <label for="bookingMessage" class="input-label"
+              >💬 추가 메시지 (선택)</label
+            >
+            <textarea
+              id="bookingMessage"
+              class="input-field"
+              rows="3"
+              placeholder="강사님께 전달하고 싶은 내용을 입력하세요"
+            ></textarea>
+          </div>
 
           <div
             style="
-              background: #fef3c7;
+              background: #dbeafe;
               padding: 12px;
               border-radius: 8px;
               margin-bottom: 15px;
             "
           >
-            <p style="color: #92400e; font-size: 0.9rem; line-height: 1.5">
-              ℹ️ 예약 요청 후 강사님이 확정하면 내 예약 내역에 표시됩니다.
+            <p style="color: #1e40af; font-size: 0.9rem; line-height: 1.5">
+              💡 예약 요청 후 강사님이 확정하면 내 예약 내역에 표시됩니다.
             </p>
           </div>
 

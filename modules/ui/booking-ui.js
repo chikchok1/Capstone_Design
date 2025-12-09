@@ -29,16 +29,64 @@ export let currentBookingInstructorUid = null;
 export let currentBookingInstructorSport = null; // ✅ 종목 추가
 
 export function initBookingUI() {
-  window.openBookingModal = function (instructorId, instructorName, instructorUid, instructorSport) { // ✅ sport 추가
+  // 날짜 빠른 선택 함수
+  window.selectQuickDate = function(daysFromNow) {
+    const today = new Date();
+    today.setDate(today.getDate() + daysFromNow);
+    
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
+    
+    document.getElementById('bookingDate').value = dateString;
+    
+    // 활성 상태 표시
+    document.querySelectorAll('.date-quick-btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // 선택된 날짜 표시
+    const dateDisplay = document.getElementById('selectedDateDisplay');
+    const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+    const weekday = weekdays[today.getDay()];
+    dateDisplay.textContent = `✅ ${month}월 ${day}일 (${weekday})`;
+    dateDisplay.classList.add('show');
+  };
+  
+  // 시간 빠른 선택 함수
+  window.selectQuickTime = function(time) {
+    document.getElementById('bookingTime').value = time;
+    
+    // 활성 상태 표시
+    document.querySelectorAll('.time-quick-btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+  };
+
+  window.openBookingModal = function (instructorId, instructorName, instructorUid, instructorSport) {
     currentBookingInstructorId = instructorId;
     currentBookingInstructorName = instructorName;
     currentBookingInstructorUid = instructorUid;
-    currentBookingInstructorSport = instructorSport; // ✅ 저장
+    currentBookingInstructorSport = instructorSport;
     document.getElementById(
       "bookingInstructorName"
     ).textContent = `${instructorName} 강사님께 레슨을 요청합니다`;
     
-    // ✅ 강사 상세 모달 닫기
+    // 날짜/시간 초기화
+    document.getElementById('bookingDate').value = '';
+    document.getElementById('bookingTime').value = '';
+    document.getElementById('bookingMessage').value = '';
+    document.getElementById('selectedDateDisplay').classList.remove('show');
+    
+    // 버튼 활성 상태 초기화
+    document.querySelectorAll('.date-quick-btn, .time-quick-btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    
+    // 강사 상세 모달 닫기
     const instructorDetailModal = document.getElementById("instructorDetailModal");
     if (instructorDetailModal && instructorDetailModal.classList.contains("active")) {
       instructorDetailModal.classList.remove("active");
