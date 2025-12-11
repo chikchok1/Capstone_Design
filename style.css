@@ -131,22 +131,16 @@ nav a:hover {
   z-index: 2000;
   align-items: center;
   justify-content: center;
-  /* backdrop-filter 제거 (성능 이슈) */
   overflow-y: auto;
   padding: 20px;
   /* GPU 가속 */
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
-  /* 부드러운 전환 */
-  opacity: 0;
-  transition: opacity 0.2s ease;
 }
 
 .modal.active {
   display: flex;
-  /* 애니메이션 대신 opacity만 사용 */
-  animation: none;
-  opacity: 1;
+  /* 애니메이션 제거 - 즉시 표시 */
 }
 
 /* fadeIn 애니메이션 제거 (불필요) */
@@ -165,18 +159,13 @@ nav a:hover {
   /* GPU 가속 */
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
-  will-change: transform;
   /* 부드러운 스크롤 */
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  /* 빠른 전환 */
-  transition: transform 0.15s ease;
 }
 
 .modal.active .modal-content {
-  /* slideUp 애니메이션 제거하고 즉시 표시 */
-  animation: none;
-  transform: translateY(0) translateZ(0);
+  /* 애니메이션 제거 - 즉시 표시 */
 }
 
 /* slideUp 애니메이션 제거 (불필요) */
@@ -191,27 +180,23 @@ nav a:hover {
   cursor: pointer;
   color: #9ca3af;
   z-index: 10;
-  /* 빠른 전환 */
-  transition: all 0.15s ease;
   width: 40px;
   height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  /* GPU 가속 */
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
+  /* 즉각 반응 */
+  transition: background 0.1s ease, color 0.1s ease;
 }
 
 .modal-close:hover {
   background: #f3f4f6;
   color: #374151;
-  transform: rotate(90deg) translateZ(0);
 }
 
 .modal-close:active {
-  transform: scale(0.95) translateZ(0);
+  transform: scale(0.95);
 }
 
 /* 탭 디자인 */

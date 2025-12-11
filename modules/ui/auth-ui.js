@@ -17,8 +17,45 @@ export function initTabSwitcher() {
   };
 }
 
+// 회원가입 Enter 키 이벤트
+function setupSignupEnterKey() {
+  const signupName = document.getElementById('signupName');
+  const signupEmail = document.getElementById('signupEmail');
+  const signupPw = document.getElementById('signupPw');
+  
+  if (signupName) {
+    signupName.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        window.processSignup();
+      }
+    });
+  }
+  
+  if (signupEmail) {
+    signupEmail.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        window.processSignup();
+      }
+    });
+  }
+  
+  if (signupPw) {
+    signupPw.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        window.processSignup();
+      }
+    });
+  }
+}
+
 // 회원가입 처리
 export function initSignupHandler() {
+  // Enter 키 이벤트 설정
+  setupSignupEnterKey();
+  
   window.processSignup = async function () {
     console.log("🔍 회원가입 버튼 클릭됨");
 
@@ -95,8 +132,35 @@ export function initSignupHandler() {
   };
 }
 
+// 로그인 Enter 키 이벤트
+function setupLoginEnterKey() {
+  const loginEmail = document.getElementById('loginEmail');
+  const loginPw = document.getElementById('loginPw');
+  
+  if (loginEmail) {
+    loginEmail.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        window.processLogin();
+      }
+    });
+  }
+  
+  if (loginPw) {
+    loginPw.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        window.processLogin();
+      }
+    });
+  }
+}
+
 // 로그인 처리
 export function initLoginHandler() {
+  // Enter 키 이벤트 설정
+  setupLoginEnterKey();
+  
   window.processLogin = async function () {
     console.log("🔍 로그인 버튼 클릭됨");
 
