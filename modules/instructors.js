@@ -38,11 +38,16 @@ async function verifyProfileOwner(profileId, currentUid) {
   
   const profileData = profileDoc.data();
   
-  if (profileData.uid !== currentUid) {
-    throw new Error("본인의 프로필만 수정/삭제할 수 있습니다.");
+  // ✅ 관리자 체크 추가
+  const { isAdmin } = await import('./admin.js');
+  const user = getCurrentUser();
+  
+  // 관리자이거나 본인의 프로필인 경우 통과
+  if (isAdmin(user?.email) || profileData.uid === currentUid) {
+    return profileData;
   }
   
-  return profileData;
+  throw new Error("본인의 프로필만 수정/삭제할 수 있습니다.");
 }
 
 // ============================================================
@@ -184,6 +189,19 @@ async function updateSportCountsAfterChange() {
 }
 
 // ✅ 통계 업데이트 헬퍼 함수 (강사 수만 업데이트)
+// ✅ 관리자 전용: 모든 강사 목록 조회
+export async function getAllInstructors() {
+  const q = query(collection(db, "instructors"), orderBy("createdAt", "desc"));
+  const querySnapshot = await getDocs(q);
+  
+  const instructors = [];
+  querySnapshot.forEach((docSnap) => {
+    instructors.push({ id: docSnap.id, ...docSnap.data() });
+  });
+  
+  return instructors;
+}
+
 async function updateStatisticsAfterChange() {
   try {
     const { updateInstructorCount } = await import('./statistics.js');

@@ -24,4 +24,11 @@ Thumbs.db
 *.tmp
 *.bak
 
+
+# Firebase 관련 민감 파일
 firestore.rules
+storage.rules
+*.secret
+
+# Firebase CLI 자동 생성 파일 중 불필요한 것
+.firebase/

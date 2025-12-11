@@ -381,6 +381,7 @@ export function renderSportCard(sport, onClick) {
     <h3>${sport.name}</h3>
     <p>${sport.count}명의 강사</p>
   `;
+  
   return card;
 }
 

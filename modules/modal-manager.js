@@ -127,7 +127,7 @@ export function createAddSportModal() {
         <input type="text" id="newSportName" class="input-field" placeholder="종목 이름 (예: 크로스핏)" oninput="autoSuggestEmoji()" />
         
         <div style="display: flex; gap: 10px; align-items: center;">
-          <input type="text" id="newSportIcon" class="input-field" placeholder="이모지 아이콘" maxlength="2" style="flex: 1;" />
+          <input type="text" id="newSportIcon" class="input-field" placeholder="이모지 아이콘" maxlength="2" style="flex: 1;" oninput="updateEmojiPreview()" />
           <div id="emojiPreview" style="font-size: 32px; width: 50px; text-align: center; background: #f3f4f6; border-radius: 8px; padding: 5px;">🏃</div>
         </div>
         <p style="font-size: 12px; color: #6b7280; margin-top: -10px; margin-bottom: 15px;">💡 이모지는 자동으로 추천됩니다. 직접 수정도 가능해요!</p>

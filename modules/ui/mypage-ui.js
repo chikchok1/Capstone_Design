@@ -1,5 +1,5 @@
 // ============================================================
-// 마이페이지 UI 모듈
+// 마이페이지 UI 모듈 (관리자 기능 추가)
 // ============================================================
 import { auth } from "../firebase-config.js";
 import { getCurrentUserData } from "../auth.js";
@@ -8,6 +8,7 @@ import { getMyInstructorProfile } from "../instructors.js";
 import { hasRated } from "../ratings.js";
 import { openMyPageModal as openMyPageModalHelper, closeMyPageModal as closeMyPageModalHelper, showMyPageTab as showMyPageTabHelper } from "../modal-manager.js";
 import { renderBookingCard, renderBookingRequestCard, renderInstructorProfile, renderStudentProfile } from "../ui-renderers.js";
+import { isAdmin } from "../admin.js";
 
 export let myBookingsCache = null;
 export let myRequestsCache = null;
@@ -33,7 +34,21 @@ export function initMyPageUI() {
 
     const tabsContainer = document.getElementById("mypageTabs");
     
-    if (userData.type === "instructor") {
+    // ✅ 관리자인 경우 특별한 UI 표시
+    if (isAdmin(user.email)) {
+      tabsContainer.innerHTML = `
+        <button class="mypage-tab-btn active" onclick="showMyPageTab('admin')">🔑 강사 관리</button>
+      `;
+      
+      document.getElementById("myBookingsTab").style.display = "none";
+      document.getElementById("bookingRequestsTab").style.display = "none";
+      document.getElementById("confirmedBookingsTab").style.display = "none";
+      document.getElementById("myProfileTab").style.display = "none";
+      document.getElementById("adminTab").style.display = "block";
+      
+      setTimeout(() => window.loadAdminInstructorManagement(), 0);
+      
+    } else if (userData.type === "instructor") {
       tabsContainer.innerHTML = `
         <button class="mypage-tab-btn active" onclick="showMyPageTab('requests')">예약 요청</button>
         <button class="mypage-tab-btn" onclick="showMyPageTab('confirmed')">확정된 예약</button>
@@ -44,6 +59,7 @@ export function initMyPageUI() {
       document.getElementById("bookingRequestsTab").style.display = "block";
       document.getElementById("confirmedBookingsTab").style.display = "none";
       document.getElementById("myProfileTab").style.display = "none";
+      document.getElementById("adminTab").style.display = "none";
       
       setTimeout(() => window.loadMyBookingRequests(), 0);
       
@@ -57,6 +73,7 @@ export function initMyPageUI() {
       document.getElementById("bookingRequestsTab").style.display = "none";
       document.getElementById("confirmedBookingsTab").style.display = "none";
       document.getElementById("myProfileTab").style.display = "none";
+      document.getElementById("adminTab").style.display = "none";
       
       setTimeout(() => window.loadMyBookingsList(), 0);
     }
@@ -80,16 +97,178 @@ export function initMyPageUI() {
       requests: { tab: document.getElementById("bookingRequestsTab"), load: window.loadMyBookingRequests },
       confirmed: { tab: document.getElementById("confirmedBookingsTab"), load: window.loadInstructorConfirmedBookings },
       profile: { tab: document.getElementById("myProfileTab"), load: window.loadMyProfileContent },
+      admin: { tab: document.getElementById("adminTab"), load: window.loadAdminInstructorManagement },
     };
 
-    Object.values(tabs).forEach(t => t.tab.style.display = "none");
+    Object.values(tabs).forEach(t => {
+      if (t.tab) t.tab.style.display = "none";
+    });
     
-    if (tabs[tabName]) {
+    if (tabs[tabName] && tabs[tabName].tab) {
       tabs[tabName].tab.style.display = "block";
       if (tabs[tabName].load && !tabs[tabName].loaded) {
         tabs[tabName].load();
         tabs[tabName].loaded = true;
       }
+    }
+  };
+
+  // ✅ 관리자 전용: 모든 강사 관리
+  window.loadAdminInstructorManagement = async function () {
+    const adminContent = document.getElementById("adminContent");
+    
+    adminContent.innerHTML = '<p style="text-align: center; padding: 40px; color: #6b7280;">📦 로딩 중...</p>';
+    
+    try {
+      const { getAllInstructors } = await import("../instructors.js");
+      const instructors = await getAllInstructors();
+
+      if (instructors.length === 0) {
+        adminContent.innerHTML = '<p style="text-align: center; padding: 40px; color: #6b7280;">등록된 강사가 없습니다.</p>';
+        return;
+      }
+
+      adminContent.innerHTML = `
+        <div style="margin-bottom: 20px;">
+          <h3 style="margin: 0; font-size: 1.2rem; color: #1f2937;">
+            🔑 등록된 강사 목록 (${instructors.length}명)
+          </h3>
+          <p style="color: #6b7280; font-size: 0.9rem; margin-top: 5px;">
+            관리자는 모든 강사 프로필을 삭제할 수 있습니다.
+          </p>
+        </div>
+        <div id="adminInstructorsList"></div>
+      `;
+
+      const instructorsList = document.getElementById("adminInstructorsList");
+
+      instructors.forEach((instructor) => {
+        const card = document.createElement("div");
+        card.className = "booking-card";
+        card.style.borderLeft = "4px solid #ef4444";
+        card.innerHTML = `
+          <div style="display: flex; gap: 15px; align-items: start;">
+            <img 
+              src="${instructor.profileImage || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(instructor.name) + '&size=80&background=3b82f6&color=fff'}" 
+              alt="${instructor.name}"
+              style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid #e5e7eb;"
+            />
+            <div style="flex: 1;">
+              <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                <div>
+                  <h4 style="font-size: 1.1rem; margin-bottom: 3px;">${instructor.name} 강사</h4>
+                  <p style="color: #6b7280; font-size: 0.9rem;">${instructor.sport} · ${instructor.region}</p>
+                </div>
+                <span style="background: #fef3c7; color: #92400e; padding: 4px 12px; border-radius: 12px; font-size: 0.85rem;">
+                  ⭐ ${instructor.averageRating || 5.0}점
+                </span>
+              </div>
+              
+              <div style="display: flex; gap: 10px; margin-bottom: 10px; font-size: 0.85rem; color: #6b7280;">
+                <span>💼 경력 ${instructor.experience}년</span>
+                <span>💰 ${instructor.price?.toLocaleString()}원/회</span>
+                <span>📊 ${instructor.ratingCount || 0}개 리뷰</span>
+              </div>
+
+              ${instructor.introduction ? `
+                <p style="color: #6b7280; font-size: 0.9rem; line-height: 1.4; margin-bottom: 10px; padding: 10px; background: #f9fafb; border-radius: 8px;">
+                  ${instructor.introduction.length > 100 ? instructor.introduction.substring(0, 100) + '...' : instructor.introduction}
+                </p>
+              ` : ''}
+
+              <div style="display: flex; gap: 8px; margin-top: 12px;">
+                <button 
+                  class="btn btn-outline" 
+                  onclick="viewInstructorDetail('${instructor.id}')"
+                  style="flex: 1;"
+                >
+                  👁️ 상세보기
+                </button>
+                <button 
+                  class="btn btn-outline" 
+                  onclick="adminDeleteInstructor('${instructor.id}', '${instructor.name}')"
+                  style="flex: 1; border-color: #ef4444; color: #ef4444;"
+                >
+                  🗑️ 삭제
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        instructorsList.appendChild(card);
+      });
+    } catch (error) {
+      console.error("❌ 강사 목록 로드 실패:", error);
+      adminContent.innerHTML = '<p style="text-align: center; padding: 40px; color: #dc2626;">❌ 로드 실패</p>';
+    }
+  };
+
+  // ✅ 강사 상세 보기 함수 추가
+  window.viewInstructorDetail = async function (instructorId) {
+    try {
+      // 마이페이지 모달 먼저 닫기
+      closeMyPageModalHelper();
+      
+      // instructors.js에서 가져오기
+      const { getInstructorById } = await import("../instructors.js");
+      const instructor = await getInstructorById(instructorId);
+      
+      if (!instructor) {
+        alert("강사 정보를 찾을 수 없습니다.");
+        return;
+      }
+      
+      // showInstructorDetail 호출
+      if (window.showInstructorDetail) {
+        await window.showInstructorDetail(instructor);
+      } else {
+        alert("강사 상세 보기 기능을 불러올 수 없습니다.");
+      }
+    } catch (error) {
+      console.error("❌ 강사 상세 로드 실패:", error);
+      alert("강사 정보를 불러오는 중 오류가 발생했습니다.");
+    }
+  };
+
+  // ✅ 관리자 전용: 강사 삭제
+  window.adminDeleteInstructor = async function (instructorId, instructorName) {
+    const user = auth.currentUser;
+    
+    if (!user || !isAdmin(user.email)) {
+      alert("⛔ 관리자만 삭제할 수 있습니다.");
+      return;
+    }
+
+    if (!confirm(`⚠️ 정말로 "${instructorName}" 강사를 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없으며, 관련된 예약 및 리뷰도 모두 삭제됩니다.`)) {
+      return;
+    }
+
+    try {
+      const { deleteInstructorProfile } = await import("../instructors.js");
+      await deleteInstructorProfile(instructorId);
+      
+      alert(`✅ "${instructorName}" 강사가 삭제되었습니다.`);
+      
+      // ✅ 강사 목록 새로고침
+      await window.loadAdminInstructorManagement();
+      
+      // ✅ 종목 데이터 새로고침
+      const { refreshSportsWithCounts } = await import("../sports.js");
+      await refreshSportsWithCounts();
+      
+      // ✅ 통계 업데이트
+      if (window.updateStats) {
+        await window.updateStats(true);
+      }
+      
+      // ✅ 메인 페이지 강사 목록 새로고침
+      if (window.loadAndDisplayInstructors) {
+        await window.loadAndDisplayInstructors();
+      }
+      
+    } catch (error) {
+      console.error("❌ 강사 삭제 실패:", error);
+      alert("❌ 강사 삭제 중 오류가 발생했습니다.");
     }
   };
 

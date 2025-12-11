@@ -53,6 +53,27 @@ import {
 let sportsDataGlobal = [];
 
 // ============================================================
+// 강사 UI 제어
+// ============================================================
+function showInstructorUI() {
+  const instructorBtn = document.getElementById('instructorAddSportBtn');
+  if (instructorBtn) {
+    instructorBtn.style.display = 'inline';
+    console.log("✅ 강사 UI 표시");
+  }
+}
+
+function hideInstructorUI() {
+  const instructorBtn = document.getElementById('instructorAddSportBtn');
+  if (instructorBtn) {
+    instructorBtn.style.display = 'none';
+  }
+}
+
+window.showInstructorUI = showInstructorUI;
+window.hideInstructorUI = hideInstructorUI;
+
+// ============================================================
 // 🆕 검색 박스 종목 리스트 채우기
 // ============================================================
 function populateSportSelect(sportsData) {
@@ -104,6 +125,7 @@ setupAuthListener(async (user) => {
   const instructorRegisterLink = document.querySelector(
     'a[href="#"][onclick*="openInstructorRegisterModal"]'
   );
+  const instructorAddSportBtn = document.getElementById("instructorAddSportBtn");
 
   if (user) {
     setCurrentUser(user);
@@ -127,15 +149,53 @@ setupAuthListener(async (user) => {
         ? userData.name + "님"
         : user.email.split("@")[0] + "님";
 
+      // ✅ 강사인 경우 강사 등록 링크만 표시 (종목 추가 버튼은 숨김)
       if (userData.type === "instructor") {
-        instructorRegisterLink.style.display = "inline";
+        if (instructorRegisterLink) {
+          instructorRegisterLink.style.display = "inline";
+        }
+        // ✅ 강사는 종목 추가 불가
+        if (instructorAddSportBtn) {
+          instructorAddSportBtn.style.display = "none";
+          console.log("✅ 강사 로그인: 종목 추가 버튼 숨김");
+        }
       } else {
-        instructorRegisterLink.style.display = "none";
+        if (instructorRegisterLink) {
+          instructorRegisterLink.style.display = "none";
+        }
+        if (instructorAddSportBtn) {
+          instructorAddSportBtn.style.display = "none";
+        }
+      }
+      
+      // ✅ 관리자 권한 체크
+      const { isAdmin, checkAndSetAdminRole } = await import('./modules/admin.js');
+      const adminStatus = await checkAndSetAdminRole(user.uid, user.email);
+      
+      if (adminStatus) {
+        console.log("🔑 관리자 로그인:", user.email);
+        userName.textContent += " [관리자]";
+        
+        // ✅ 관리자는 강사 등록 버튼 숨기기 (종목 추가 버튼만 표시)
+        if (instructorRegisterLink) {
+          instructorRegisterLink.style.display = "none";
+        }
+        // 종목 추가 버튼은 표시 (관리자도 종목 추가 가능)
+        if (instructorAddSportBtn) {
+          instructorAddSportBtn.style.display = "inline";
+        }
+        
+        // ✅ 관리자는 알림 버튼 숨기기
+        const bellIcon = document.getElementById("bellIcon");
+        if (bellIcon) {
+          bellIcon.style.display = "none";
+        }
       }
     }
 
-    // 알림 시스템 시작
-    if (window.startNotificationCheck) {
+    // ✅ 관리자가 아닌 경우에만 알림 시스템 시작
+    const { isAdmin } = await import('./modules/admin.js');
+    if (!isAdmin(user.email) && window.startNotificationCheck) {
       window.startNotificationCheck();
     }
 
@@ -165,6 +225,11 @@ setupAuthListener(async (user) => {
       instructorRegisterLink.style.display = "none";
     }
     
+    // ✅ 강사 UI 숨기기
+    if (instructorAddSportBtn) {
+      instructorAddSportBtn.style.display = "none";
+    }
+    
     // ✅ 비로그인 상태에서도 통계 표시
     updateStats();
   }
@@ -181,13 +246,18 @@ async function updateStats(forceRefresh = false) {
 
     const statInstructors = document.getElementById("statInstructors");
     const statBookings = document.getElementById("statBookings");
-    const statRating = document.querySelector(
-      ".stats-grid .stat-item:nth-child(3) h3"
-    );
+    const statRating = document.getElementById("statRating");
+    const statSports = document.getElementById("statSports");
 
     if (statInstructors) statInstructors.textContent = stats.instructorCount;
     if (statBookings) statBookings.textContent = stats.bookingCount;
     if (statRating) statRating.textContent = stats.avgRating + "/5";
+    
+    // ✅ 운동 종목 수 업데이트
+    if (statSports) {
+      const sportsData = getSportsData();
+      statSports.textContent = sportsData.length > 0 ? sportsData.length : "40";
+    }
 
     console.log("✅ 통계 업데이트 완료:", stats);
   } catch (error) {
@@ -196,17 +266,180 @@ async function updateStats(forceRefresh = false) {
     // 에러 발생 시 기본값 표시
     const statInstructors = document.getElementById("statInstructors");
     const statBookings = document.getElementById("statBookings");
-    const statRating = document.querySelector(
-      ".stats-grid .stat-item:nth-child(3) h3"
-    );
+    const statRating = document.getElementById("statRating");
+    const statSports = document.getElementById("statSports");
 
     if (statInstructors) statInstructors.textContent = "0";
     if (statBookings) statBookings.textContent = "0";
-    if (statRating) statRating.textContent = "4.8/5";
+    if (statRating) statRating.textContent = "5.0/5";
+    if (statSports) statSports.textContent = "40";
   }
 }
 
 window.updateStats = updateStats;
+
+// ============================================================
+// 강사 전용: 종목 추가 관련 함수
+// ============================================================
+// 종목 추가 모달 열기
+window.openAddSportModal = async function() {
+  const user = getCurrentUser();
+  
+  if (!user) {
+    alert('⛔ 로그인이 필요합니다.');
+    return;
+  }
+  
+  // ✅ 관리자 체크
+  const { isAdmin } = await import('./modules/admin.js');
+  if (!isAdmin(user.email)) {
+    alert('⛔ 관리자만 종목을 추가할 수 있습니다.');
+    return;
+  }
+  
+  const modal = document.getElementById('addSportModal');
+  if (modal) {
+    modal.classList.add('active');
+    // 폼 초기화
+    document.getElementById('newSportName').value = '';
+    document.getElementById('newSportCategory').value = '';
+  }
+};
+
+// 종목 추가 모달 닫기
+window.closeAddSportModal = function() {
+  const modal = document.getElementById('addSportModal');
+  if (modal) modal.classList.remove('active');
+};
+
+// ✅ 이모지 미리보기 함수
+window.previewSportEmoji = async function() {
+  const sportName = document.getElementById('newSportName')?.value.trim();
+  const category = document.getElementById('newSportCategory')?.value;
+  const preview = document.getElementById('emojiPreview');
+  
+  if (!preview) return;
+  
+  // 종목명이나 카테고리가 없으면 기본 이모지
+  if (!sportName && !category) {
+    preview.textContent = '🏃';
+    return;
+  }
+  
+  try {
+    const { getEmojiForSport } = await import('./modules/sports.js');
+    const emoji = getEmojiForSport(sportName, category);
+    preview.textContent = emoji;
+    
+    // ✨ 애니메이션 효과 추가
+    preview.style.transform = 'scale(1.2)';
+    setTimeout(() => {
+      preview.style.transform = 'scale(1)';
+    }, 200);
+  } catch (error) {
+    console.error('❌ 이모지 미리보기 실패:', error);
+    preview.textContent = '🏃';
+  }
+};
+
+// 이모지 자동 추천
+window.autoSuggestEmoji = async function() {
+  const sportName = document.getElementById('newSportName')?.value || '';
+  const iconInput = document.getElementById('newSportIcon');
+  const categorySelect = document.getElementById('newSportCategory');
+  const preview = document.getElementById('emojiPreview');
+  
+  if (!sportName || !iconInput || !preview) return;
+  
+  try {
+    const { getEmojiForSport } = await import('./modules/sports.js');
+    const category = categorySelect?.value || '';
+    const emoji = getEmojiForSport(sportName, category);
+    
+    iconInput.value = emoji;
+    preview.textContent = emoji;
+  } catch (error) {
+    console.error('❌ 이모지 추천 실패:', error);
+  }
+};
+
+// 이모지 미리보기 업데이트
+window.updateEmojiPreview = function() {
+  const iconInput = document.getElementById('newSportIcon');
+  const preview = document.getElementById('emojiPreview');
+  
+  if (iconInput && preview) {
+    preview.textContent = iconInput.value || '🏃';
+  }
+};
+
+// 종목 추가 실행
+window.addNewSportFromModal = async function() {
+  const user = getCurrentUser();
+  
+  if (!user) {
+    alert('⛔ 로그인이 필요합니다.');
+    return;
+  }
+  
+  // ✅ 관리자 체크
+  const { isAdmin } = await import('./modules/admin.js');
+  if (!isAdmin(user.email)) {
+    alert('⛔ 관리자만 종목을 추가할 수 있습니다.');
+    return;
+  }
+  
+  const nameInput = document.getElementById('newSportName');
+  const categorySelect = document.getElementById('newSportCategory');
+  
+  const name = nameInput?.value.trim();
+  const category = categorySelect?.value;
+  
+  if (!name || !category) {
+    alert('⚠️ 종목 이름과 카테고리를 모두 입력해주세요.');
+    return;
+  }
+  
+  try {
+    const { addNewSport, refreshSportsWithCounts } = await import('./modules/sports.js');
+    
+    console.log(`🔍 종목 추가 시작: ${name}, ${category}`);
+    
+    // ✅ 관리자 권한으로 종목 추가 (이모지는 자동 매칭)
+    await addNewSport(name, category);
+    
+    alert(`✅ "${name}" 종목이 추가되었습니다!`);
+    
+    // 모달 닫기
+    window.closeAddSportModal();
+    
+    // 종목 데이터 새로고침
+    sportsDataGlobal = await refreshSportsWithCounts();
+    setSportsData(sportsDataGlobal);
+    setInstructorSportsData(sportsDataGlobal);
+    
+    // UI 업데이트
+    if (window.loadAndDisplaySports) {
+      await window.loadAndDisplaySports();
+    }
+    
+    // 검색 박스 종목 리스트 업데이트
+    populateSportSelect(sportsDataGlobal);
+    
+    // 통계 업데이트
+    await updateStats();
+    
+  } catch (error) {
+    console.error('❌ 종목 추가 실패:', error);
+    if (error.message.includes('관리자')) {
+      alert('⛔ ' + error.message);
+    } else if (error.message.includes('이미 존재')) {
+      alert('⚠️ 이미 존재하는 종목입니다.');
+    } else {
+      alert('❌ 종목 추가 중 오류가 발생했습니다.');
+    }
+  }
+};
 
 // ============================================================
 // 모달 이벤트 바인딩
@@ -345,4 +578,48 @@ window.fixRatings = async function() {
 };
 
 console.log("✅ 평점 재계산 함수 등록됨: window.fixRatings()");
+
+// ✅ 종목 데이터 초기화 함수 (일솔에서 실행)
+window.resetSports = async function() {
+  if (!confirm("⚠️ Firebase의 모든 종목 데이터를 기본값(66개)으로 초기화하시겠습니까?")) {
+    return;
+  }
+  
+  console.log("🔄 종목 데이터 초기화 시작...");
+  
+  try {
+    const { resetSportsToDefault, refreshSportsWithCounts } = await import("./modules/sports.js");
+    
+    // 1. Firebase 데이터 초기화
+    const resetData = await resetSportsToDefault();
+    console.log(`✅ 기본 데이터 저장 완료: ${resetData.length}개`);
+    
+    // 2. 강사 수 카운트 업데이트
+    sportsDataGlobal = await refreshSportsWithCounts();
+    setSportsData(sportsDataGlobal);
+    setInstructorSportsData(sportsDataGlobal);
+    
+    // 3. UI 업데이트
+    if (window.loadAndDisplaySports) {
+      await window.loadAndDisplaySports();
+    }
+    
+    // 4. 검색 박스 업데이트
+    populateSportSelect(sportsDataGlobal);
+    
+    // 5. 통계 업데이트
+    await updateStats();
+    
+    alert(`✅ 종목 데이터 초기화 완료!\n\n촙66개의 종목이 로드되었습니다.`);
+  } catch (error) {
+    console.error("❌ 종목 데이터 초기화 실패:", error);
+    if (error.message.includes('관리자')) {
+      alert('⛔ ' + error.message);
+    } else {
+      alert("❌ 종목 데이터 초기화에 실패했습니다.");
+    }
+  }
+};
+
+console.log("✅ 종목 데이터 초기화 함수 등록됨: window.resetSports()");
 console.log("🚀 FitMatch 페이지 로드 완료");

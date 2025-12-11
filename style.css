@@ -682,6 +682,15 @@ nav a:hover {
 .sport-icon {
   font-size: 2.5rem;
   margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+}
+
+.sport-icon svg {
+  stroke: #667eea;
+  stroke-width: 2;
 }
 
 .sport-card h3 {
@@ -1073,4 +1082,9 @@ footer p {
     flex-direction: column;
     gap: 10px;
   }
+}
+
+/* ✅ 이모지 미리보기 애니메이션 */
+#emojiPreview {
+  transition: transform 0.2s ease;
 }

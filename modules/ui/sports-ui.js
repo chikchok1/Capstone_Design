@@ -62,10 +62,27 @@ export function initSportsUI() {
       grid.appendChild(card);
     });
 
-    const addCard = renderAddSportCard(window.openAddSportModal);
-    grid.appendChild(addCard);
+    // ✅ 관리자인 경우에만 종목 추가 카드 표시
+    checkAndShowAddSportCard(grid);
     
     console.log("✅ 종목 카드 렌더링 완료");
+  }
+
+  // ✅ 관리자 확인 후 종목 추가 카드 표시
+  async function checkAndShowAddSportCard(grid) {
+    try {
+      const { isAdmin } = await import("../admin.js");
+      const { auth } = await import("../firebase-config.js");
+      const user = auth.currentUser;
+      
+      // 관리자인 경우에만 종목 추가 카드 표시
+      if (user && isAdmin(user.email)) {
+        const addCard = renderAddSportCard(window.openAddSportModal);
+        grid.appendChild(addCard);
+      }
+    } catch (error) {
+      console.error("❌ 관리자 확인 실패:", error);
+    }
   }
 
   function updateViewMoreButton() {
